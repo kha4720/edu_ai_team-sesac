@@ -19,9 +19,13 @@ from src.prompts.tech_build_plan import (
 from src.prompts.tech_review import (
     TECH_REVIEW_GATE1_INSTRUCTION,
     TECH_REVIEW_GATE2_INSTRUCTION,
-    TECH_REVIEW_SYSTEM_OVERRIDE_TAIL,
 )
-from src.prompts.tech_system import build_tech_system_prompt
+from src.prompts.tech_system import (
+    build_tech_persona_prompt,
+    build_tech_review_overlay,
+    build_tech_write_overlay,
+    compose_tech_system_prompt,
+)
 from src.schemas.input_schema import HarnessInput
 
 
@@ -38,7 +42,11 @@ def write_build_plan(
         Global: harness_input + constitution
         Primary: mvp_scope, user_flow
     """
-    sys_prompt = build_tech_system_prompt(harness_input.service.target_user)
+    persona_prompt = build_tech_persona_prompt(harness_input.service.target_user)
+    sys_prompt = compose_tech_system_prompt(
+        persona_prompt,
+        build_tech_write_overlay(),
+    )
     ctx = PromptContext(
         global_blocks={"사용자 입력": harness_input.to_global_context()},
         primary_blocks={
@@ -75,7 +83,11 @@ def review_constitution_for_gate1(
     Returns:
         JSON dict — constitution_buildability / constraint_fit / summary
     """
-    sys_prompt = build_tech_system_prompt(harness_input.service.target_user) + TECH_REVIEW_SYSTEM_OVERRIDE_TAIL
+    persona_prompt = build_tech_persona_prompt(harness_input.service.target_user)
+    sys_prompt = compose_tech_system_prompt(
+        persona_prompt,
+        build_tech_review_overlay(),
+    )
     ctx = PromptContext(
         global_blocks={"사용자 입력": harness_input.to_global_context()},
         primary_blocks={"헌법 (Constitution)": constitution_md},
@@ -102,7 +114,11 @@ def review_planning_5_for_gate2(
     Returns:
         JSON dict — technical_feasibility / build_plan_validity / summary
     """
-    sys_prompt = build_tech_system_prompt(harness_input.service.target_user) + TECH_REVIEW_SYSTEM_OVERRIDE_TAIL
+    persona_prompt = build_tech_persona_prompt(harness_input.service.target_user)
+    sys_prompt = compose_tech_system_prompt(
+        persona_prompt,
+        build_tech_review_overlay(),
+    )
     ctx = PromptContext(
         global_blocks={
             "사용자 입력": harness_input.to_global_context(),

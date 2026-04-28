@@ -31,9 +31,11 @@ from src.prompts.edu_constitution import (
 )
 from src.prompts.edu_review import (
     EDU_REVIEW_GATE2_INSTRUCTION,
-    EDU_REVIEW_SYSTEM_OVERRIDE_TAIL,
 )
-from src.prompts.edu_system import build_edu_system_prompt
+from src.prompts.edu_system import (
+    build_edu_review_system_prompt,
+    build_edu_write_system_prompt,
+)
 from src.schemas.input_schema import HarnessInput
 
 # ④~⑦ 분리 호출용 정의 (라벨 / 결과 키 / 지시문 / max_tokens / 출력 힌트)
@@ -110,7 +112,7 @@ def _assemble_markdown(stage_outputs: dict[str, str]) -> str:
 
 def write_constitution(harness_input: HarnessInput) -> ConstitutionResult:
     """헌법을 5번 호출(①~③ 묶음 + ④⑤⑥⑦ 분리)로 작성하고 합쳐진 마크다운을 반환한다."""
-    sys_prompt = build_edu_system_prompt(harness_input.service.target_user)
+    sys_prompt = build_edu_write_system_prompt(harness_input.service.target_user)
     global_blocks = {"사용자 입력": harness_input.to_global_context()}
 
     stage_outputs: dict[str, str] = {}
@@ -168,7 +170,7 @@ def review_planning_5_for_gate2(
     Returns:
         JSON dict — constitution_alignment / learning_effectiveness / summary
     """
-    sys_prompt = build_edu_system_prompt(harness_input.service.target_user) + EDU_REVIEW_SYSTEM_OVERRIDE_TAIL
+    sys_prompt = build_edu_review_system_prompt(harness_input.service.target_user)
     ctx = PromptContext(
         global_blocks={
             "사용자 입력": harness_input.to_global_context(),

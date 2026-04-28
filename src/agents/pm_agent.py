@@ -28,13 +28,17 @@ from src.prompts.pm_qa_plan import (
 )
 from src.prompts.pm_review import (
     PM_REVIEW_GATE1_INSTRUCTION,
-    PM_REVIEW_SYSTEM_OVERRIDE_TAIL,
 )
 from src.prompts.pm_service_brief import (
     SERVICE_BRIEF_INSTRUCTION,
     SERVICE_BRIEF_OUTPUT_HINT,
 )
-from src.prompts.pm_system import build_pm_system_prompt
+from src.prompts.pm_system import (
+    build_pm_persona_prompt,
+    build_pm_review_overlay,
+    build_pm_write_overlay,
+    compose_pm_system_prompt,
+)
 from src.prompts.pm_user_flow import (
     USER_FLOW_INSTRUCTION,
     USER_FLOW_OUTPUT_HINT,
@@ -73,7 +77,11 @@ def _call_pm(
         max_tokens: 응답 토큰 한도.
         secondary_blocks: [Secondary Inputs] 블록 (선택).
     """
-    sys_prompt = build_pm_system_prompt(harness_input.service.target_user)
+    persona_prompt = build_pm_persona_prompt(harness_input.service.target_user)
+    sys_prompt = compose_pm_system_prompt(
+        persona_prompt,
+        build_pm_write_overlay(),
+    )
     ctx = PromptContext(
         global_blocks={"사용자 입력": harness_input.to_global_context()},
         primary_blocks=dict(primary_blocks),
@@ -212,7 +220,11 @@ def review_constitution_for_gate1(
     Returns:
         JSON dict — planning_usability / mvp_realism / summary
     """
-    sys_prompt = build_pm_system_prompt(harness_input.service.target_user) + PM_REVIEW_SYSTEM_OVERRIDE_TAIL
+    persona_prompt = build_pm_persona_prompt(harness_input.service.target_user)
+    sys_prompt = compose_pm_system_prompt(
+        persona_prompt,
+        build_pm_review_overlay(),
+    )
     ctx = PromptContext(
         global_blocks={"사용자 입력": harness_input.to_global_context()},
         primary_blocks={"헌법 (Constitution)": constitution_md},
