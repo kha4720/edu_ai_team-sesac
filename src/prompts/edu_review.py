@@ -15,8 +15,6 @@ from __future__ import annotations
 EDU_REVIEW_GATE2_INSTRUCTION = """다음 기획문서 5종 (Service Brief / MVP Scope / User Flow / Build Plan / QA Plan) 을
 **헌법 정합성** 과 **학습 효과성** 두 관점에서 검토하라.
 
-너는 Edu Agent 다. 작성자(PM/Tech) 가 아니라 검토자 입장에서 객관적으로 본다.
-
 ## 검토 항목
 
 ### 1) 헌법 정합성 (constitution_alignment)
@@ -45,14 +43,4 @@ EDU_REVIEW_GATE2_INSTRUCTION = """다음 기획문서 5종 (Service Brief / MVP 
 - `ok=true` 일 땐 issue 는 빈 문자열 또는 짧은 코멘트.
 - `ok=false` 일 땐 어느 문서/어느 부분이 문제인지 본문 인용 + 구체 결함 지적.
 - `summary`: 종합 한 문장 의견 (Orchestrator 가 종합 판단 시 참고).
-"""
-
-
-EDU_REVIEW_SYSTEM_OVERRIDE_TAIL = """
-
-## Review 모드
-지금 너는 산출물 작성이 아니라 **검토(review)** 모드다.
-- JSON 으로만 응답한다. 다른 텍스트 절대 금지.
-- 작성자의 입장에서 변호하지 마라. 본질에서 결함이 있는가만 본다.
-- 사소한 문체 차이는 issue 가 아니다.
 """

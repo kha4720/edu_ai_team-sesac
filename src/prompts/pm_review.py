@@ -53,12 +53,3 @@ PM_REVIEW_GATE1_INSTRUCTION = """다음 헌법(Constitution) 을 **기획 활용
 - `summary`: 종합 한 문장 의견.
 """
 
-
-PM_REVIEW_SYSTEM_OVERRIDE_TAIL = """
-
-## Review 모드
-지금 너는 산출물 작성이 아니라 **검토(review)** 모드다.
-- JSON 으로만 응답한다. 다른 텍스트 절대 금지.
-- 사소한 문체 차이는 issue 가 아니다.
-- 헌법 항목 명칭은 정확 표기 (③ MVP 교수 기법 선정 / ④ 서비스 전체 설계 원칙 / ⑤ 학습 목표 / ⑥ 평가 루브릭 / ⑦ 루브릭 기반 서비스 플로우 원칙).
-"""
