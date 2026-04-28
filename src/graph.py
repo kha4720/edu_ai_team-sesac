@@ -1,20 +1,46 @@
 """LangGraph 기반 하네스 워크플로우 정의.
 
-기획서 3.4.2 의 워크플로우를 LangGraph StateGraph 로 표현한다.
+기획서 3.4.2 의 워크플로우를 LangGraph StateGraph 로 표현.
+Gate fail 시 작성 노드로 돌아가는 conditional_edges 포함.
 
-흐름 (선형):
+흐름:
     START → constitution → gate1
-          → service_brief → mvp_scope → user_flow → build_plan → qa_plan
-          → gate2 → END
+       gate1.PASS               → service_brief → mvp_scope → user_flow → build_plan → qa_plan → gate2
+       gate1.FAIL  (1회차)       → constitution (재작성)
+       gate1.FAIL  (2회차)       → 노드가 verdict 를 CONDITIONAL_PASS 로 덮어씀 → service_brief
 
-향후 확장 (TODO):
-- Gate fail 시 작성 노드로 돌아가는 conditional_edges (현재는 게이트 내부 retry 로직으로 대체)
-- Step 4 구현 명세서 4종 노드 추가
+       gate2.PASS                → END
+       gate2.FAIL  (1회차)       → service_brief (5종 재작성)
+       gate2.FAIL  (2회차)       → 노드가 verdict 를 CONDITIONAL_PASS 로 덮어씀 → END
+
+기획서 4.2.5 ④ "동일 Gate 는 최대 2회까지 수행" — retry 1회.
+
+------------------------------------------------------------
+설계 패턴: "조건문은 노드, 라우터는 매핑"
+------------------------------------------------------------
+처음엔 라우터 함수에 "if retry<1 → constitution / else → service_brief" 같은
+조건문을 다 넣을까 싶지만, 그 방식은 책임이 흩어집니다.
+
+본 그래프는 다음 두 단계로 책임 분리:
+
+(1) **노드** 가 "이번이 N차 시도였고 어떤 verdict 가 최종이다" 까지 결정.
+    - retry_count 증가
+    - 2회차 fail 이면 verdict 를 FAIL → CONDITIONAL_PASS 로 덮어씀
+    - risk_memo 작성
+
+(2) **라우터** 는 verdict 값만 보고 미리 정의된 매핑(dict)을 따라 분기.
+    - if/else 가 아니라 "verdict → 다음 노드" 의 단순 매핑
+    - PASS / CONDITIONAL_PASS → 다음 단계
+    - FAIL → 작성 노드로 돌아가기
+
+이러면 라우터 함수는 단순해지고 (분기 로직이 한 곳에 집중), 노드는
+"이 단계의 최종 판정" 책임만 명확히 가짐. LangGraph 의 권장 패턴.
 """
 
 from __future__ import annotations
 
-from typing import Any, TypedDict
+from dataclasses import replace
+from typing import Any, Literal, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
@@ -29,16 +55,13 @@ from src.agents.tech_agent import write_build_plan
 from src.gates.gate1 import Gate1Result, run_gate1
 from src.gates.gate2 import Gate2Result, PlanningArtifacts, run_gate2
 from src.schemas.input_schema import HarnessInput
+from src.schemas.workflow_state import GateResult
 
 
 class HarnessState(TypedDict, total=False):
-    """그래프가 들고 다니는 상태.
+    """그래프가 들고 다니는 상태."""
 
-    각 노드는 이 State 의 일부 필드를 갱신해서 반환한다 (LangGraph 가 자동 머지).
-    `total=False` 로 두어 단계별로 점진적 채움이 가능.
-    """
-
-    # 입력 (그래프 시작 시 주입)
+    # 입력
     harness_input: HarnessInput
 
     # Step 2 — 헌법
@@ -46,6 +69,8 @@ class HarnessState(TypedDict, total=False):
 
     # Gate 1
     gate1_result: Gate1Result
+    gate1_retry_count: int  # 0 (초기) → 1 (1차 검증 후) → 2 (2차 검증 후)
+    gate1_risk_memo: str  # CONDITIONAL_PASS 시 잔존 issue 기록
 
     # Step 3 — 기획문서 5종
     service_brief_md: str
@@ -56,10 +81,12 @@ class HarnessState(TypedDict, total=False):
 
     # Gate 2
     gate2_result: Gate2Result
+    gate2_retry_count: int
+    gate2_risk_memo: str
 
 
 # ============================================================
-# 노드 함수들 — 각 노드는 State 일부 필드만 갱신해 반환
+# 노드 함수들
 # ============================================================
 
 
@@ -70,31 +97,48 @@ def node_constitution(state: HarnessState) -> dict[str, Any]:
 
 
 def node_gate1(state: HarnessState) -> dict[str, Any]:
-    """Gate 1 — 헌법 검증."""
+    """Gate 1 — 헌법 검증 (다중 검증자).
+
+    노드 책임:
+    - 검증 1회 실행
+    - retry_count 증가
+    - **2회차 fail 이면 verdict 를 CONDITIONAL_PASS 로 덮어씀** (라우터가 단순 매핑하도록)
+    - risk_memo 작성
+    """
     from src.agents.edu_agent import ConstitutionResult
 
     constitution = ConstitutionResult(
         markdown=state["constitution_md"], stage_outputs={}
     )
-    result = run_gate1(state["harness_input"], constitution, max_retries=0)
-    # 재작성 발생 시 갱신된 헌법을 반영
-    return {
+    result = run_gate1(state["harness_input"], constitution)
+
+    retry_before = state.get("gate1_retry_count", 0)
+    updates: dict[str, Any] = {
         "gate1_result": result,
-        "constitution_md": result.constitution.markdown,
+        "gate1_retry_count": retry_before + 1,
     }
+
+    # 2회차도 fail → CONDITIONAL_PASS 로 verdict 덮어쓰기 + risk_memo
+    if result.final_verdict == GateResult.FAIL and retry_before >= 1:
+        risk_issues = result.round_result.issues_only()
+        updates["gate1_risk_memo"] = (
+            "Gate 1 재검토 후에도 fail. 잔존 issue: " + " | ".join(risk_issues)
+        )
+        updates["gate1_result"] = replace(
+            result, final_verdict=GateResult.CONDITIONAL_PASS
+        )
+
+    return updates
 
 
 def node_service_brief(state: HarnessState) -> dict[str, Any]:
-    """Step 3-1 — PM Agent / Service Brief."""
     art = write_service_brief(
-        state["harness_input"],
-        constitution_md=state["constitution_md"],
+        state["harness_input"], constitution_md=state["constitution_md"]
     )
     return {"service_brief_md": art.markdown}
 
 
 def node_mvp_scope(state: HarnessState) -> dict[str, Any]:
-    """Step 3-2 — PM Agent / MVP Scope."""
     art = write_mvp_scope(
         state["harness_input"],
         constitution_md=state["constitution_md"],
@@ -104,7 +148,6 @@ def node_mvp_scope(state: HarnessState) -> dict[str, Any]:
 
 
 def node_user_flow(state: HarnessState) -> dict[str, Any]:
-    """Step 3-3 — PM Agent / User Flow."""
     art = write_user_flow(
         state["harness_input"],
         constitution_md=state["constitution_md"],
@@ -114,7 +157,6 @@ def node_user_flow(state: HarnessState) -> dict[str, Any]:
 
 
 def node_build_plan(state: HarnessState) -> dict[str, Any]:
-    """Step 3-4 — Tech Agent / Build Plan."""
     art = write_build_plan(
         state["harness_input"],
         constitution_md=state["constitution_md"],
@@ -125,7 +167,6 @@ def node_build_plan(state: HarnessState) -> dict[str, Any]:
 
 
 def node_qa_plan(state: HarnessState) -> dict[str, Any]:
-    """Step 3-5 — PM Agent / QA Plan."""
     art = write_qa_plan(
         state["harness_input"],
         constitution_md=state["constitution_md"],
@@ -137,7 +178,10 @@ def node_qa_plan(state: HarnessState) -> dict[str, Any]:
 
 
 def node_gate2(state: HarnessState) -> dict[str, Any]:
-    """Gate 2 — Orchestrator + Edu + Tech 다중 검증."""
+    """Gate 2 — 기획문서 5종 다중 검증.
+
+    node_gate1 과 동일 패턴: 2회차 fail 이면 CONDITIONAL_PASS 로 덮어쓰기.
+    """
     from src.agents.pm_agent import ArtifactOutput
 
     artifacts = PlanningArtifacts(
@@ -148,21 +192,61 @@ def node_gate2(state: HarnessState) -> dict[str, Any]:
         qa_plan=ArtifactOutput("qa_plan", state["qa_plan_md"]),
     )
     result = run_gate2(
-        state["harness_input"],
-        state["constitution_md"],
-        artifacts,
-        max_retries=0,
+        state["harness_input"], state["constitution_md"], artifacts
     )
-    # 재작성 발생 시 갱신된 5종 반영
-    final = result.artifacts
-    return {
+
+    retry_before = state.get("gate2_retry_count", 0)
+    updates: dict[str, Any] = {
         "gate2_result": result,
-        "service_brief_md": final.service_brief.markdown,
-        "mvp_scope_md": final.mvp_scope.markdown,
-        "user_flow_md": final.user_flow.markdown,
-        "build_plan_md": final.build_plan.markdown,
-        "qa_plan_md": final.qa_plan.markdown,
+        "gate2_retry_count": retry_before + 1,
     }
+
+    if result.final_verdict == GateResult.FAIL and retry_before >= 1:
+        risk_issues = result.rounds[-1].issues_only()
+        updates["gate2_risk_memo"] = (
+            "Gate 2 재검토 후에도 fail. 잔존 issue: " + " | ".join(risk_issues)
+        )
+        updates["gate2_result"] = replace(
+            result, final_verdict=GateResult.CONDITIONAL_PASS
+        )
+
+    return updates
+
+
+# ============================================================
+# Conditional edges — 라우터 함수
+# ============================================================
+# 라우터는 단순 매핑만 한다 (조건문 X). 노드가 verdict 를 이미 정리해뒀으므로
+# verdict 값을 미리 정의된 분기로 매핑하면 끝.
+# ============================================================
+
+
+def route_after_gate1(state: HarnessState) -> Literal["service_brief", "constitution"]:
+    """Gate 1 후 다음 노드 매핑.
+
+    PASS / CONDITIONAL_PASS → service_brief (다음 단계)
+    FAIL                    → constitution  (재작성)
+    """
+    verdict = state["gate1_result"].final_verdict
+    return {
+        GateResult.PASS_:             "service_brief",
+        GateResult.CONDITIONAL_PASS:  "service_brief",
+        GateResult.FAIL:              "constitution",
+    }[verdict]
+
+
+def route_after_gate2(state: HarnessState) -> Literal["service_brief", "__end__"]:
+    """Gate 2 후 다음 노드 매핑.
+
+    PASS / CONDITIONAL_PASS → __end__       (종료)
+    FAIL                    → service_brief (5종 재작성)
+    """
+    verdict = state["gate2_result"].final_verdict
+    return {
+        GateResult.PASS_:             "__end__",
+        GateResult.CONDITIONAL_PASS:  "__end__",
+        GateResult.FAIL:              "service_brief",
+    }[verdict]
 
 
 # ============================================================
@@ -171,10 +255,9 @@ def node_gate2(state: HarnessState) -> dict[str, Any]:
 
 
 def build_harness_graph() -> Any:
-    """하네스 워크플로우 그래프를 빌드해서 컴파일된 인스턴스 반환."""
+    """하네스 워크플로우 그래프 빌드 + 컴파일."""
     g = StateGraph(HarnessState)
 
-    # 노드 등록
     g.add_node("constitution", node_constitution)
     g.add_node("gate1", node_gate1)
     g.add_node("service_brief", node_service_brief)
@@ -184,19 +267,36 @@ def build_harness_graph() -> Any:
     g.add_node("qa_plan", node_qa_plan)
     g.add_node("gate2", node_gate2)
 
-    # 엣지 (선형)
     g.add_edge(START, "constitution")
     g.add_edge("constitution", "gate1")
-    g.add_edge("gate1", "service_brief")
+
+    # Gate 1 분기 — 라우터가 verdict 값을 노드명으로 매핑
+    g.add_conditional_edges(
+        "gate1",
+        route_after_gate1,
+        {
+            "service_brief": "service_brief",
+            "constitution":  "constitution",
+        },
+    )
+
     g.add_edge("service_brief", "mvp_scope")
     g.add_edge("mvp_scope", "user_flow")
     g.add_edge("user_flow", "build_plan")
     g.add_edge("build_plan", "qa_plan")
     g.add_edge("qa_plan", "gate2")
-    g.add_edge("gate2", END)
+
+    # Gate 2 분기 — 라우터가 verdict 값을 노드명으로 매핑
+    g.add_conditional_edges(
+        "gate2",
+        route_after_gate2,
+        {
+            "service_brief": "service_brief",
+            "__end__":       END,
+        },
+    )
 
     return g.compile()
 
 
-# 컴파일된 그래프 (re-use 용 단일 인스턴스)
 HARNESS_GRAPH = build_harness_graph()

@@ -18,17 +18,10 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from src.agents.edu_agent import review_planning_5_for_gate2 as edu_review_gate2
-from src.agents.pm_agent import (
-    ArtifactOutput,
-    write_mvp_scope,
-    write_qa_plan,
-    write_service_brief,
-    write_user_flow,
-)
+from src.agents.pm_agent import ArtifactOutput
 from src.agents.tech_agent import (
     review_planning_5_for_gate2 as tech_review_gate2,
 )
-from src.agents.tech_agent import write_build_plan
 from src.llm.prompt_builder import PromptContext, build_user_prompt
 from src.llm.solar import chat_json
 from src.prompts.orchestrator_gate2 import (
@@ -241,54 +234,18 @@ def _judge_round(
     return _aggregate_round(orch, edu, tech)
 
 
-def _rewrite_planning_5(
-    harness_input: HarnessInput,
-    constitution_md: str,
-) -> PlanningArtifacts:
-    """5종 모두 재호출. MVP 단순화."""
-    sb = write_service_brief(harness_input, constitution_md=constitution_md)
-    ms = write_mvp_scope(harness_input, constitution_md=constitution_md, service_brief_md=sb.markdown)
-    uf = write_user_flow(harness_input, constitution_md=constitution_md, mvp_scope_md=ms.markdown)
-    bp = write_build_plan(harness_input, constitution_md=constitution_md, mvp_scope_md=ms.markdown, user_flow_md=uf.markdown)
-    qa = write_qa_plan(harness_input, constitution_md=constitution_md, mvp_scope_md=ms.markdown, user_flow_md=uf.markdown, build_plan_md=bp.markdown)
-    return PlanningArtifacts(
-        service_brief=sb, mvp_scope=ms, user_flow=uf, build_plan=bp, qa_plan=qa,
-    )
-
-
 def run_gate2(
     harness_input: HarnessInput,
     constitution_md: str,
     artifacts: PlanningArtifacts,
-    *,
-    max_retries: int = 1,
 ) -> Gate2Result:
-    """기획문서 5종 검증 (다중 검증자) + 재시도까지 처리."""
-    rounds: list[Gate2RoundResult] = []
-    current = artifacts
+    """기획문서 5종 검증 1회 수행 (재시도 없음).
 
-    print("[Gate 2] 1차 검증 시작 (Orchestrator + Edu + Tech)")
-    r1 = _judge_round(harness_input, constitution_md, current)
-    rounds.append(r1)
-    if r1.final_verdict == "pass":
-        return Gate2Result(final_verdict=GateResult.PASS_, artifacts=current, rounds=rounds)
-
-    if max_retries < 1:
-        return Gate2Result(final_verdict=GateResult.FAIL, artifacts=current, rounds=rounds)
-
-    print(f"[Gate 2] FAIL → 5종 재작성 (feedback: {r1.aggregated_feedback[:100]}...)")
-    current = _rewrite_planning_5(harness_input, constitution_md)
-
-    print("[Gate 2] 2차 검증 시작")
-    r2 = _judge_round(harness_input, constitution_md, current)
-    rounds.append(r2)
-    if r2.final_verdict == "pass":
-        return Gate2Result(final_verdict=GateResult.PASS_, artifacts=current, rounds=rounds)
-
-    risk = "Gate 2 동일 검증 항목 2회 연속 미흡. 잔존 issue: " + " | ".join(r2.issues_only())
-    return Gate2Result(
-        final_verdict=GateResult.CONDITIONAL_PASS,
-        artifacts=current,
-        rounds=rounds,
-        risk_memo=risk,
+    재시도/조건부 통과 분기는 LangGraph conditional_edges (Phase B) 가 책임.
+    """
+    print("[Gate 2] Orchestrator + Edu + Tech 다중 검증")
+    r1 = _judge_round(harness_input, constitution_md, artifacts)
+    final = (
+        GateResult.PASS_ if r1.final_verdict == "pass" else GateResult.FAIL
     )
+    return Gate2Result(final_verdict=final, artifacts=artifacts, rounds=[r1])

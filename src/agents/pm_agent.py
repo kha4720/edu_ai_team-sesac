@@ -1,8 +1,11 @@
-"""PM Agent — 기획문서 4종 + 일부 구현 명세서 작성.
+"""PM Agent — 기획문서 4종 + 일부 구현 명세서 작성 + Gate review.
 
 기획서 3.6.4 / 5.3 / 5.4 에 정의된 PM Agent 의 책임 산출물:
 - 기획문서: service_brief / mvp_scope / user_flow / qa_plan
 - 구현명세: data_schema / state_machine / interface_spec  (Phase 4 에서 추가)
+
+Review:
+- Gate 1: 헌법의 기획 활용성 검토
 
 각 산출물 작성 함수는 이름 규약 `write_<artifact_id>(harness_input, **inputs)` 로 통일.
 공통 로직 (시스템 프롬프트, 호출, 결과 컨테이너) 은 _call_pm 헬퍼로 분리.
@@ -11,9 +14,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from src.llm.prompt_builder import PromptContext, build_user_prompt
-from src.llm.solar import chat
+from src.llm.solar import chat, chat_json
 from src.prompts.pm_mvp_scope import (
     MVP_SCOPE_INSTRUCTION,
     MVP_SCOPE_OUTPUT_HINT,
@@ -21,6 +25,10 @@ from src.prompts.pm_mvp_scope import (
 from src.prompts.pm_qa_plan import (
     QA_PLAN_INSTRUCTION,
     QA_PLAN_OUTPUT_HINT,
+)
+from src.prompts.pm_review import (
+    PM_REVIEW_GATE1_INSTRUCTION,
+    PM_REVIEW_SYSTEM_OVERRIDE_TAIL,
 )
 from src.prompts.pm_service_brief import (
     SERVICE_BRIEF_INSTRUCTION,
@@ -187,4 +195,35 @@ def write_qa_plan(
             "Build Plan": build_plan_md,
         },
         max_tokens=2000,
+    )
+
+
+# ============================================================
+# Review (Gate 의 의견 수합용)
+# ============================================================
+
+
+def review_constitution_for_gate1(
+    harness_input: HarnessInput,
+    constitution_md: str,
+) -> dict[str, Any]:
+    """Gate 1 에서 Orchestrator 가 호출하는 PM Agent review.
+
+    Returns:
+        JSON dict — planning_usability / mvp_realism / summary
+    """
+    sys_prompt = build_pm_system_prompt(harness_input.service.target_user) + PM_REVIEW_SYSTEM_OVERRIDE_TAIL
+    ctx = PromptContext(
+        global_blocks={"사용자 입력": harness_input.to_global_context()},
+        primary_blocks={"헌법 (Constitution)": constitution_md},
+    )
+    user_msg = build_user_prompt(
+        context=ctx,
+        instruction=PM_REVIEW_GATE1_INSTRUCTION,
+    )
+    return chat_json(
+        system=sys_prompt,
+        user=user_msg,
+        label="pm-review-gate1",
+        max_tokens=1500,
     )

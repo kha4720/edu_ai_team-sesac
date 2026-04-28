@@ -17,6 +17,7 @@ from src.prompts.tech_build_plan import (
     BUILD_PLAN_OUTPUT_HINT,
 )
 from src.prompts.tech_review import (
+    TECH_REVIEW_GATE1_INSTRUCTION,
     TECH_REVIEW_GATE2_INSTRUCTION,
     TECH_REVIEW_SYSTEM_OVERRIDE_TAIL,
 )
@@ -63,6 +64,32 @@ def write_build_plan(
 # ============================================================
 # Review (Gate 의 의견 수합용)
 # ============================================================
+
+
+def review_constitution_for_gate1(
+    harness_input: HarnessInput,
+    constitution_md: str,
+) -> dict[str, Any]:
+    """Gate 1 에서 Orchestrator 가 호출하는 Tech Agent review.
+
+    Returns:
+        JSON dict — constitution_buildability / constraint_fit / summary
+    """
+    sys_prompt = build_tech_system_prompt(harness_input.service.target_user) + TECH_REVIEW_SYSTEM_OVERRIDE_TAIL
+    ctx = PromptContext(
+        global_blocks={"사용자 입력": harness_input.to_global_context()},
+        primary_blocks={"헌법 (Constitution)": constitution_md},
+    )
+    user_msg = build_user_prompt(
+        context=ctx,
+        instruction=TECH_REVIEW_GATE1_INSTRUCTION,
+    )
+    return chat_json(
+        system=sys_prompt,
+        user=user_msg,
+        label="tech-review-gate1",
+        max_tokens=1500,
+    )
 
 
 def review_planning_5_for_gate2(
