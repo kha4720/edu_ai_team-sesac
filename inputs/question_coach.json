@@ -1,0 +1,14 @@
+{
+  "service": {
+    "target_user": "AI를 공부에 활용하지만 질문을 잘 못하는 중학생",
+    "problem": "막연한 질문을 입력해 원하는 답을 얻지 못하고 AI 활용 효율이 낮다.",
+    "goal": "학생의 질문 품질을 높여 AI 학습 활용 효율을 향상한다.",
+    "solution": "질문 코칭 챗봇 MVP"
+  },
+  "constraints": {
+    "deadline": "2026-05-01",
+    "team_size": 3,
+    "team_capability": "교육 기획 강점 / 프론트 기초 가능 / 개발 이해도 중간",
+    "existing_assets": "기획 문서 초안 있음 / 기능 정의 문서 있음 / 코드베이스 없음"
+  }
+}
