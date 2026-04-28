@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "교육 서비스 기획 문서 자동 생성 멀티에이전트 하네스"
 requires-python = ">=3.11"
 dependencies = [
+    "langgraph>=1.1.10",
     "openai>=2.32.0",
     "pydantic>=2.13.3",
     "python-dotenv>=1.2.2",
