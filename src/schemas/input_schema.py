@@ -68,11 +68,22 @@ class HarnessInput(BaseModel):
     service: ServicePlan
     constraints: ExecutionConstraints
 
-    def to_global_context(self) -> str:
+    def to_global_context(self, today: date | None = None) -> str:
         """프롬프트에 주입할 [Global] Input 블록 텍스트를 생성한다.
 
         모든 에이전트가 산출물 작성 시 이 블록을 참조하여 사용자 원 요구사항을 보존한다.
+
+        설계 결정 (deadline 환각 차단):
+        - LLM 의 산술 약점을 우회하기 위해 (오늘, deadline, 남은 일수) 를 미리 계산해 박는다.
+        - LLM 은 직접 산술하지 않고 명시된 "남은 일수" 숫자만 그대로 활용하면 됨.
+
+        Args:
+            today: 오늘 날짜. None 이면 date.today() 사용 (테스트 재현성 위해 인자화).
         """
+        from datetime import date as _date
+        today = today or _date.today()
+        days_remaining = (self.constraints.deadline - today).days
+
         s = self.service
         c = self.constraints
         lines = [
@@ -84,6 +95,10 @@ class HarnessInput(BaseModel):
             "",
             "[실행 제약 정보]",
             f"- 마감 기한(deadline): {c.deadline.isoformat()}",
+            f"- 오늘 날짜(today): {today.isoformat()}",
+            f"- **[중요] 남은 일수(days_remaining): {days_remaining}일** "
+            "(이 숫자를 기준으로 모든 일정·범위를 결정한다. "
+            "산술은 이미 끝났으니 그대로 사용할 것.)",
             f"- 팀 인원(team_size): {c.team_size}명",
             f"- 팀 역량(team_capability): {c.team_capability}",
             f"- 보유 자산(existing_assets): {c.existing_assets or '(없음)'}",

@@ -7,12 +7,18 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from src.agents.pm_agent import ArtifactOutput  # 결과 컨테이너 재사용
 from src.llm.prompt_builder import PromptContext, build_user_prompt
-from src.llm.solar import chat
+from src.llm.solar import chat, chat_json
 from src.prompts.tech_build_plan import (
     BUILD_PLAN_INSTRUCTION,
     BUILD_PLAN_OUTPUT_HINT,
+)
+from src.prompts.tech_review import (
+    TECH_REVIEW_GATE2_INSTRUCTION,
+    TECH_REVIEW_SYSTEM_OVERRIDE_TAIL,
 )
 from src.prompts.tech_system import build_tech_system_prompt
 from src.schemas.input_schema import HarnessInput
@@ -52,3 +58,38 @@ def write_build_plan(
         max_tokens=2500,
     )
     return ArtifactOutput(artifact_id="build_plan", markdown=output.strip())
+
+
+# ============================================================
+# Review (Gate 의 의견 수합용)
+# ============================================================
+
+
+def review_planning_5_for_gate2(
+    harness_input: HarnessInput,
+    constitution_md: str,
+    artifact_blocks: dict[str, str],
+) -> dict[str, Any]:
+    """Gate 2 에서 Orchestrator 가 호출하는 Tech Agent review.
+
+    Returns:
+        JSON dict — technical_feasibility / build_plan_validity / summary
+    """
+    sys_prompt = build_tech_system_prompt(harness_input.service.target_user) + TECH_REVIEW_SYSTEM_OVERRIDE_TAIL
+    ctx = PromptContext(
+        global_blocks={
+            "사용자 입력": harness_input.to_global_context(),
+            "헌법 (Constitution)": constitution_md,
+        },
+        primary_blocks=dict(artifact_blocks),
+    )
+    user_msg = build_user_prompt(
+        context=ctx,
+        instruction=TECH_REVIEW_GATE2_INSTRUCTION,
+    )
+    return chat_json(
+        system=sys_prompt,
+        user=user_msg,
+        label="tech-review-gate2",
+        max_tokens=1500,
+    )

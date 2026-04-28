@@ -1,16 +1,14 @@
 """Orchestrator Gate 2 (기획문서 5종 검증) 프롬프트.
 
-기획서 5.3.6 의 검증 기준 그대로 코드로 옮긴다.
+기획서 5.3.6 의 검증 기준에서 Orchestrator 가 직접 책임지는 4항목만 담는다.
+실행 가능성(deadline / team_size / team_capability / 스택 조합) 은 Tech Agent 의
+review (technical_feasibility) 에서 별도 검증한다 — 책임 분리.
 
 검증 항목 (Orchestrator 직접 판단):
 - 완전성: 5종 모두 작성?
 - 유효성: 각 문서가 목적에 맞는 내용/구조?
 - 정합성: 5종 간 충돌 없는가?
 - 진행성: Step 4(구현 명세서) 작성에 필요한 정보 충분?
-- 실행 가능성: [Global Context] 의 실행 제약 안에서 구현 가능?
-  (deadline / team_size / team_capability 와 일관된 계획인지)
-
-Edu/Tech 의견 수합은 MVP 단순화로 Phase 1 에서 생략 (발표 후 stretch).
 
 판정 결과: pass / fail / conditional_pass
 """
@@ -30,14 +28,11 @@ ORCHESTRATOR_GATE2_SYSTEM = """너는 "교육 서비스 기획 문서 하네스"
 
 ## 행동 원칙
 1. **본질 기반 판정.** 머리말 한 글자, 띄어쓰기, 문체 같은 사소한 차이는 fail 사유가 아니다.
-   다만 검증 항목(완전성/유효성/정합성/진행성/실행가능성)에 정의된 본질이 결여됐으면 즉시 fail.
+   다만 검증 항목(완전성/유효성/정합성/진행성)에 정의된 본질이 결여됐으면 즉시 fail.
 2. **근거 인용.** issue 를 적을 때 어떤 문서의 어떤 부분이 문제인지 짧은 인용으로 지적한다.
-3. **실현 가능성 엄격 검증.** [Global Context] 의 deadline / team_size / team_capability
-   와 산출물의 일정·범위·복잡도가 명백히 충돌하면 즉시 fail. ("1년 내" 같은 표현이
-   실제 deadline 과 어긋나는지 등 숫자·기간을 직접 비교한다.)
-4. **재작업 가능한 피드백.** fail 시 feedback_memo 는 어느 문서를 어떻게 고쳐야 하는지
+3. **재작업 가능한 피드백.** fail 시 feedback_memo 는 어느 문서를 어떻게 고쳐야 하는지
    행동 가능한 형태로 작성한다. ("내용을 더 풍부하게" 같은 모호한 지시 금지.)
-5. **JSON 으로만 응답.** 다른 말, 코드블록, 메타 설명 모두 금지.
+4. **JSON 으로만 응답.** 다른 말, 코드블록, 메타 설명 모두 금지.
 
 ## 출력 스키마
 반드시 다음 JSON 만 출력한다:
@@ -49,14 +44,13 @@ ORCHESTRATOR_GATE2_SYSTEM = """너는 "교육 서비스 기획 문서 하네스"
     "completeness":  {"ok": true|false, "issue": "..."},
     "validity":      {"ok": true|false, "issue": "..."},
     "consistency":   {"ok": true|false, "issue": "..."},
-    "progressivity": {"ok": true|false, "issue": "..."},
-    "feasibility":   {"ok": true|false, "issue": "..."}
+    "progressivity": {"ok": true|false, "issue": "..."}
   },
   "feedback_memo": "..."
 }
 ```
 
-- `verdict`: 5개 check 가 모두 ok=true 면 "pass". 하나라도 ok=false 면 "fail".
+- `verdict`: 4개 check 가 모두 ok=true 면 "pass". 하나라도 ok=false 면 "fail".
 - `checks.*.issue`:
   - ok=true 일 땐 빈 문자열 또는 짧은 코멘트.
   - ok=false 일 땐 구체적 결함 지적 + 어느 문서/어느 섹션의 인용 + 무엇이 문제인지.
@@ -101,14 +95,6 @@ GATE2_INSTRUCTION = """다음 기획문서 5종 (Service Brief / MVP Scope / Use
   - state_machine 의 상태와 전이를 정의할 만한 정보가 있는가? (User Flow 의 화면 전환 조건, QA Plan 의 예외 케이스)
   - prompt_spec 의 모드별 분기를 만들 만한 정보가 있는가? (헌법 ⑦ 의 시스템 판단 표 + User Flow 의 분기)
   - interface_spec 의 API 를 정의할 만한 정보가 있는가? (User Flow + Build Plan 의 API/AI 기능)
-
-### 5) 실행 가능성 (feasibility) — 환각/모순 잡기
-- [Global Context] 의 실행 제약과 5종 문서의 일정·범위·복잡도가 일관되는가?
-  - **deadline 비교:** 사용자 입력의 deadline 과 5종 문서에 등장하는 일정 표현이 일관되는가?
-    "1년 내", "6개월 내", "Phase 2 단계" 같은 표현이 실제 deadline 과 어긋나면 fail.
-  - **인원 비교:** team_size 와 Build Plan 의 담당 역할 분배가 현실적인가?
-  - **역량 비교:** team_capability 와 Build Plan 의 기술 스택 / 모듈 복잡도가 맞는가?
-- 의심스러운 표현이 있으면 본문 인용 + 실제 제약 값을 함께 적어 issue 에 명시.
 
 ## 출력
 시스템 프롬프트의 출력 스키마(JSON) 만 출력한다. 다른 말 금지."""

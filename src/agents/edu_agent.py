@@ -13,9 +13,10 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from typing import Any
 
 from src.llm.prompt_builder import PromptContext, build_user_prompt
-from src.llm.solar import chat
+from src.llm.solar import chat, chat_json
 from src.prompts.edu_constitution import (
     STAGE1TO3_INSTRUCTION,
     STAGE1TO3_OUTPUT_HINT,
@@ -27,6 +28,10 @@ from src.prompts.edu_constitution import (
     STAGE6_OUTPUT_HINT,
     STAGE7_INSTRUCTION,
     STAGE7_OUTPUT_HINT,
+)
+from src.prompts.edu_review import (
+    EDU_REVIEW_GATE2_INSTRUCTION,
+    EDU_REVIEW_SYSTEM_OVERRIDE_TAIL,
 )
 from src.prompts.edu_system import build_edu_system_prompt
 from src.schemas.input_schema import HarnessInput
@@ -146,3 +151,38 @@ def write_constitution(harness_input: HarnessInput) -> ConstitutionResult:
 
     markdown = _assemble_markdown(stage_outputs)
     return ConstitutionResult(markdown=markdown, stage_outputs=stage_outputs)
+
+
+# ============================================================
+# Review (Gate 의 의견 수합용)
+# ============================================================
+
+
+def review_planning_5_for_gate2(
+    harness_input: HarnessInput,
+    constitution_md: str,
+    artifact_blocks: dict[str, str],
+) -> dict[str, Any]:
+    """Gate 2 에서 Orchestrator 가 호출하는 Edu Agent review.
+
+    Returns:
+        JSON dict — constitution_alignment / learning_effectiveness / summary
+    """
+    sys_prompt = build_edu_system_prompt(harness_input.service.target_user) + EDU_REVIEW_SYSTEM_OVERRIDE_TAIL
+    ctx = PromptContext(
+        global_blocks={
+            "사용자 입력": harness_input.to_global_context(),
+            "헌법 (Constitution)": constitution_md,
+        },
+        primary_blocks=dict(artifact_blocks),
+    )
+    user_msg = build_user_prompt(
+        context=ctx,
+        instruction=EDU_REVIEW_GATE2_INSTRUCTION,
+    )
+    return chat_json(
+        system=sys_prompt,
+        user=user_msg,
+        label="edu-review-gate2",
+        max_tokens=1500,
+    )

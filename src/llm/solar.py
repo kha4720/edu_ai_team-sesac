@@ -91,7 +91,7 @@ def chat_json(
     *,
     label: str = "chat_json",
     model: str | None = None,
-    temperature: float = 0.2,
+    temperature: float = 0.0,
     max_tokens: int = 4096,
 ) -> dict[str, Any]:
     """JSON 객체로만 응답하도록 강제하고, 파싱된 dict 를 반환한다.
