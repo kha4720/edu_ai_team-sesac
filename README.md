@@ -69,13 +69,25 @@ git push origin 이름
 
 ---
 
-## 환경 설정 (Track 1)
+## (Track 1) UI 데모 실행 (`hyeona` 브랜치)
 
 ```bash
-# 의존성 설치 (uv 필요)
+# hyeona 브랜치로 이동
+git checkout hyeona
+
+# 의존성 설치
 uv sync
 
-# .env 파일 생성
+# .env 파일에 API 키 설정
 cp .env.example .env
-# UPSTAGE_API_KEY 값 입력
+# UPSTAGE_API_KEY 값 입력 후 저장
+
+# 데모 실행
+uv run streamlit run app.py
+```
+
+브라우저에서 `http://localhost:8501` 로 접속하면 UI가 열립니다.
+
+서비스 기획 정보와 실행 제약을 입력한 뒤 **🚀 하네스 실행** 버튼을 누르면
+LLM 에이전트들이 순차적으로 문서를 생성합니다 (최초 실행 시 약 1~2분 소요).
 ```
