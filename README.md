@@ -11,17 +11,19 @@
         ▼
 [Step 2] Edu Agent  ──▶  constitution.md
         │
-   Gate 1 (Orchestrator) ── FAIL 시 최대 1회 재작성
+   Gate 1 (Team Lead) ── FAIL 시 최대 1회 재작성
         ▼
 [Step 3] PM / Tech  ──▶  service_brief.md / mvp_scope.md / user_flow.md
                          build_plan.md / qa_plan.md
         │
-   Gate 2 (Orchestrator + Edu + Tech 다중 검증) ── FAIL 시 최대 1회 재작성
+   Gate 2 (Team Lead + Edu + Tech 다중 검증) ── FAIL 시 최대 1회 재작성
         ▼
-[Step 4] PM / Prompt ──▶  data_schema.json / state_machine.md
-                          prompt_spec.md / interface_spec.md
+[Step 4] PM / Prompt ──▶  data_schema.json
+                          ├─(병렬)─ state_machine.md
+                          └─(병렬)─ prompt_spec.md
+                          └──────── interface_spec.md
         │
-   Gate 3 (Orchestrator) ── FAIL 시 최대 1회 재작성
+   Gate 3 (Team Lead + Tech + Edu 다중 검증) ── FAIL 시 최대 1회 재작성
         ▼
        완료 (헌법 1종 + 기획문서 5종 + 구현 명세서 4종)
 ```
@@ -34,15 +36,15 @@
 | **PM Agent** | service_brief / mvp_scope / user_flow / qa_plan / data_schema / state_machine / interface_spec |
 | **Tech Agent** | build_plan |
 | **Prompt Agent** | prompt_spec |
-| **Orchestrator** | Gate 1 · 2 · 3 검증 총괄 |
+| **Team Lead** | Gate 1 · 2 · 3 검증 총괄 |
 
 ## Gate 검증 구조
 
 | Gate | 대상 | 검증자 | 검증 항목 |
 |------|------|--------|---------|
-| Gate 1 | 헌법 | Orchestrator + PM + Tech | 완전성 / 상위 기준 일관성 / 내부 연계성 / 근거 타당성 |
-| Gate 2 | 기획문서 5종 | Orchestrator + Edu + Tech | 완전성 / 유효성 / 정합성 / 진행성 |
-| Gate 3 | 구현 명세서 4종 | Orchestrator | data_schema 완전성 / state_machine 정합성 / prompt_spec 커버리지 / interface_spec 정렬 |
+| Gate 1 | 헌법 | Team Lead + PM + Tech | 완전성 / 상위 기준 일관성 / 내부 연계성 / 근거 타당성 |
+| Gate 2 | 기획문서 5종 | Team Lead + Edu + Tech | 완전성 / 유효성 / 정합성 / 진행성 |
+| Gate 3 | 구현 명세서 4종 | Team Lead + Tech + Edu | data_schema 완전성 / state_machine 정합성 / prompt_spec 커버리지 / interface_spec 정렬 |
 
 각 Gate 는 FAIL 시 작성 노드로 되돌아가는 LangGraph `conditional_edges` 로 구현.
 2회차도 FAIL 이면 `CONDITIONAL_PASS` 로 덮어쓰고 `risk_memo` 를 남긴 뒤 진행.
