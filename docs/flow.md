@@ -35,6 +35,7 @@ graph TD;
 	__start__ --> constitution;
 	build_plan --> qa_plan;
 	constitution --> gate1;
+	data_schema --> prompt_spec;
 	data_schema --> state_machine;
 	gate1 -.-> constitution;
 	gate1 -.-> service_brief;
@@ -47,7 +48,7 @@ graph TD;
 	prompt_spec --> interface_spec;
 	qa_plan --> gate2;
 	service_brief --> mvp_scope;
-	state_machine --> prompt_spec;
+	state_machine --> interface_spec;
 	user_flow --> build_plan;
 	classDef default fill:#f2f0ff,line-height:1.2
 	classDef first fill-opacity:0
@@ -82,7 +83,7 @@ graph TD;
 | `state_machine` | PM Agent | `state_machine.md` (상태 전이 + mode 매핑) |
 | `prompt_spec` | Prompt Agent | `prompt_spec.md` (헌법 ④⑤⑥⑦ → 프롬프트 변환) |
 | `interface_spec` | PM Agent | `interface_spec.md` (API / UI / 모듈 계약서) |
-| `gate3` | Orchestrator | 구현 명세서 4종 검증 + retry_count / conditional_pass 처리 |
+| `gate3` | Orchestrator + Tech + Edu | 구현 명세서 4종 다중 검증 + retry_count / conditional_pass 처리 |
 
 ## State 구조 (TypedDict)
 
