@@ -19,6 +19,7 @@ from src.prompts.tech_build_plan import (
 from src.prompts.tech_review import (
     TECH_REVIEW_GATE1_INSTRUCTION,
     TECH_REVIEW_GATE2_INSTRUCTION,
+    TECH_REVIEW_GATE3_INSTRUCTION,
 )
 from src.prompts.tech_system import (
     build_tech_persona_prompt,
@@ -134,5 +135,36 @@ def review_planning_5_for_gate2(
         system=sys_prompt,
         user=user_msg,
         label="tech-review-gate2",
+        max_tokens=1500,
+    )
+
+
+def review_spec_4_for_gate3(
+    harness_input: HarnessInput,
+    constitution_md: str,
+    impl_spec_blocks: dict[str, str],
+) -> dict[str, Any]:
+    """Gate 3 에서 Orchestrator 가 호출하는 Tech Agent review.
+
+    Returns:
+        JSON dict — implementation_buildability / mvp_constraint_fit / summary
+    """
+    persona_prompt = build_tech_persona_prompt(harness_input.service.target_user)
+    sys_prompt = compose_tech_system_prompt(
+        persona_prompt,
+        build_tech_review_overlay(),
+    )
+    ctx = PromptContext(
+        global_blocks={"헌법 (Constitution)": constitution_md},
+        primary_blocks=dict(impl_spec_blocks),
+    )
+    user_msg = build_user_prompt(
+        context=ctx,
+        instruction=TECH_REVIEW_GATE3_INSTRUCTION,
+    )
+    return chat_json(
+        system=sys_prompt,
+        user=user_msg,
+        label="tech-review-gate3",
         max_tokens=1500,
     )

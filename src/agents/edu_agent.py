@@ -31,6 +31,7 @@ from src.prompts.edu_constitution import (
 )
 from src.prompts.edu_review import (
     EDU_REVIEW_GATE2_INSTRUCTION,
+    EDU_REVIEW_GATE3_INSTRUCTION,
 )
 from src.prompts.edu_system import (
     build_edu_constitution_write_overlay,
@@ -196,5 +197,36 @@ def review_planning_5_for_gate2(
         system=sys_prompt,
         user=user_msg,
         label="edu-review-gate2",
+        max_tokens=1500,
+    )
+
+
+def review_spec_4_for_gate3(
+    harness_input: HarnessInput,
+    constitution_md: str,
+    impl_spec_blocks: dict[str, str],
+) -> dict[str, Any]:
+    """Gate 3 에서 Orchestrator 가 호출하는 Edu Agent review.
+
+    Returns:
+        JSON dict — constitution_alignment / learning_logic_fit / summary
+    """
+    persona_prompt = build_edu_persona_prompt(harness_input.service.target_user)
+    sys_prompt = compose_edu_system_prompt(
+        persona_prompt,
+        build_edu_review_overlay(),
+    )
+    ctx = PromptContext(
+        global_blocks={"헌법 (Constitution)": constitution_md},
+        primary_blocks=dict(impl_spec_blocks),
+    )
+    user_msg = build_user_prompt(
+        context=ctx,
+        instruction=EDU_REVIEW_GATE3_INSTRUCTION,
+    )
+    return chat_json(
+        system=sys_prompt,
+        user=user_msg,
+        label="edu-review-gate3",
         max_tokens=1500,
     )

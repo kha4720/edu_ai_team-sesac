@@ -1,22 +1,34 @@
-"""Gate 3 — 구현 명세서 4종 검증 (Orchestrator 단독 버전).
+"""Gate 3 — 구현 명세서 4종 검증 (다중 검증자 버전).
 
-기획서 5.4 의 검증 구조에서 Orchestrator 4항목 우선 구현.
-향후 Tech Agent review 추가 예정 (TODO: _TODO.md 참조).
+기획서 5.4 의 검증 구조:
+- Orchestrator 가 직접 4항목 판단
+  (data_schema_completeness / state_machine_consistency / prompt_spec_coverage / interface_spec_alignment)
+- Tech Agent 가 구현 가능성 + MVP 제약 적합성 review
+- Edu Agent 가 헌법 정합성 + 학습 로직 반영 review
+- 세 검증자 결과를 OR 합산 (Gate 1/2 와 동일 패턴)
 
-fail 시 data_schema 노드부터 4종 재작성 → 재검증 (1회까지).
-재시도 후에도 fail 이면 CONDITIONAL_PASS + risk_memo.
+PM Agent 는 구현 명세서 4종 중 3종(data_schema / state_machine / interface_spec) 의
+직접 작성자이므로 자가 검토는 의미 없음 → Gate 3 에는 PM review 미포함.
+(같은 원칙으로 Gate 1 에선 Edu 를 제외 — worklog 15 참조)
+
+병렬 실행: Orchestrator + Tech + Edu 셋이 서로 독립이므로 ThreadPoolExecutor 로 동시 실행.
+재시도/조건부 통과 분기는 LangGraph conditional_edges 가 책임.
 """
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from src.agents.edu_agent import review_spec_4_for_gate3 as edu_review_gate3
+from src.agents.tech_agent import review_spec_4_for_gate3 as tech_review_gate3
 from src.llm.prompt_builder import PromptContext, build_user_prompt
 from src.llm.solar import chat_json
 from src.prompts.orchestrator_gate3 import GATE3_INSTRUCTION, ORCHESTRATOR_GATE3_SYSTEM
+from src.schemas.input_schema import HarnessInput
 from src.schemas.workflow_state import GateResult
 
 
@@ -34,31 +46,78 @@ class Gate3OrchestratorVerdict(BaseModel):
 
 
 @dataclass
-class Gate3Result:
-    final_verdict: GateResult
-    orchestrator_verdict: Gate3OrchestratorVerdict
-    risk_memo: str = ""
+class Gate3RoundResult:
+    """1회의 검증 라운드 결과 (Orchestrator + Tech review + Edu review 모두 포함)."""
+
+    orchestrator: Gate3OrchestratorVerdict
+    tech_review: dict[str, Any]
+    edu_review: dict[str, Any]
+    final_verdict: Literal["pass", "fail"]
+    aggregated_feedback: str
 
     def issues_only(self) -> list[str]:
         out: list[str] = []
-        for name, ck in self.orchestrator_verdict.checks.items():
+        for name, ck in self.orchestrator.checks.items():
             if not ck.ok:
                 out.append(f"Orchestrator/{name}: {ck.issue}")
+        for name in ("implementation_buildability", "mvp_constraint_fit"):
+            ck = self.tech_review.get(name) or {}
+            if not ck.get("ok", True):
+                out.append(f"Tech/{name}: {ck.get('issue', '')}")
+        for name in ("constitution_alignment", "learning_logic_fit"):
+            ck = self.edu_review.get(name) or {}
+            if not ck.get("ok", True):
+                out.append(f"Edu/{name}: {ck.get('issue', '')}")
         return out
 
+
+@dataclass
+class Gate3Result:
+    final_verdict: GateResult
+    round_result: Gate3RoundResult
+    risk_memo: str = ""
+
+    # 기존 호출자 호환 (graph.py 의 issues_only 등)
+    @property
+    def orchestrator_verdict(self) -> Gate3OrchestratorVerdict:
+        return self.round_result.orchestrator
+
+    def issues_only(self) -> list[str]:
+        return self.round_result.issues_only()
+
     def to_log_markdown(self) -> str:
+        rd = self.round_result
         lines = [f"## Gate 3 결과: **{self.final_verdict.value}**", ""]
         lines.append("**Orchestrator 직접 검증:**")
-        for name, ck in self.orchestrator_verdict.checks.items():
+        for name, ck in rd.orchestrator.checks.items():
             mark = "✅" if ck.ok else "❌"
             lines.append(f"- {mark} {name}: {ck.issue or '(통과)'}")
-        if self.orchestrator_verdict.feedback_memo:
+        lines.append("")
+        lines.append("**Tech Agent review:**")
+        for name in ("implementation_buildability", "mvp_constraint_fit"):
+            ck = rd.tech_review.get(name) or {}
+            mark = "✅" if ck.get("ok", True) else "❌"
+            lines.append(f"- {mark} {name}: {ck.get('issue') or '(통과)'}")
+        if rd.tech_review.get("summary"):
+            lines.append(f"- summary: {rd.tech_review['summary']}")
+        lines.append("")
+        lines.append("**Edu Agent review:**")
+        for name in ("constitution_alignment", "learning_logic_fit"):
+            ck = rd.edu_review.get(name) or {}
+            mark = "✅" if ck.get("ok", True) else "❌"
+            lines.append(f"- {mark} {name}: {ck.get('issue') or '(통과)'}")
+        if rd.edu_review.get("summary"):
+            lines.append(f"- summary: {rd.edu_review['summary']}")
+        if rd.aggregated_feedback:
             lines.append("")
-            lines.append(f"**feedback_memo:** {self.orchestrator_verdict.feedback_memo}")
+            lines.append(f"**aggregated_feedback:** {rd.aggregated_feedback}")
         if self.risk_memo:
             lines.append("")
             lines.append(f"**risk_memo:** {self.risk_memo}")
         return "\n".join(lines)
+
+
+# === 핵심 함수 ===
 
 
 def _orchestrator_judge(
@@ -83,16 +142,66 @@ def _orchestrator_judge(
     return Gate3OrchestratorVerdict.model_validate(raw)
 
 
+def _aggregate_round(
+    orchestrator: Gate3OrchestratorVerdict,
+    tech: dict[str, Any],
+    edu: dict[str, Any],
+) -> Gate3RoundResult:
+    """3 검증자 결과 OR 합산. (Gate 1/2 와 동일 패턴)"""
+    issues: list[str] = []
+
+    for name, ck in orchestrator.checks.items():
+        if not ck.ok:
+            issues.append(f"[Orchestrator/{name}] {ck.issue}")
+    for name in ("implementation_buildability", "mvp_constraint_fit"):
+        ck = tech.get(name) or {}
+        if not ck.get("ok", True):
+            issues.append(f"[Tech/{name}] {ck.get('issue', '')}")
+    for name in ("constitution_alignment", "learning_logic_fit"):
+        ck = edu.get(name) or {}
+        if not ck.get("ok", True):
+            issues.append(f"[Edu/{name}] {ck.get('issue', '')}")
+
+    final = "pass" if not issues else "fail"
+    aggregated = (
+        orchestrator.feedback_memo if final == "fail" and orchestrator.feedback_memo else ""
+    )
+    if issues:
+        aggregated = (
+            (orchestrator.feedback_memo + "\n\n" if orchestrator.feedback_memo else "")
+            + "추가 검토 의견:\n- "
+            + "\n- ".join(issues)
+        )
+
+    return Gate3RoundResult(
+        orchestrator=orchestrator,
+        tech_review=tech,
+        edu_review=edu,
+        final_verdict=final,
+        aggregated_feedback=aggregated,
+    )
+
+
 def run_gate3(
+    harness_input: HarnessInput,
     constitution_md: str,
     impl_specs: dict[str, str],
 ) -> Gate3Result:
-    """구현 명세서 4종 검증 1회 수행.
+    """구현 명세서 4종 검증 1회 수행 (재시도 없음).
 
     재시도/조건부 통과 분기는 LangGraph conditional_edges 가 책임.
-    harness_input 불필요 — 실행 제약은 Gate 2 통과 시 기획 5종에 이미 반영됨.
     """
-    print("[Gate 3] Orchestrator 직접 검증")
-    orch = _orchestrator_judge(constitution_md, impl_specs)
-    final = GateResult.PASS_ if orch.verdict == "pass" else GateResult.FAIL
-    return Gate3Result(final_verdict=final, orchestrator_verdict=orch)
+    print("[Gate 3] Orchestrator + Tech + Edu 병렬 검증 시작")
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        f_orch = pool.submit(_orchestrator_judge, constitution_md, impl_specs)
+        f_tech = pool.submit(tech_review_gate3, harness_input, constitution_md, impl_specs)
+        f_edu = pool.submit(edu_review_gate3, harness_input, constitution_md, impl_specs)
+        orch = f_orch.result()
+        tech = f_tech.result()
+        edu = f_edu.result()
+
+    round_result = _aggregate_round(orch, tech, edu)
+    final = (
+        GateResult.PASS_ if round_result.final_verdict == "pass" else GateResult.FAIL
+    )
+    return Gate3Result(final_verdict=final, round_result=round_result)
