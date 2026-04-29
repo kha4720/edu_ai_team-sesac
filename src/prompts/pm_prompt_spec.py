@@ -22,6 +22,9 @@ PROMPT_SPEC_INSTRUCTION = """**Prompt Spec** 을 작성한다.
 - 각 모드별 프롬프트의 출력 필드는 [Secondary Inputs] 의 Data Schema `output` 필드와 **정확히 일치**해야 한다.
 - few-shot 예시의 응답도 동일한 출력 필드 구조를 따른다.
 
+## 모드 값 출처 규칙
+- `## 2. 모드별 프롬프트` 의 각 mode 값은 **[Secondary Inputs] 의 Data Schema `output.mode` enum 값을 그대로 사용**한다.
+
 ## Few-shot 작성 규칙
 - 모드별로 **최소 1개** 이상의 few-shot 예시를 작성한다.
 - 각 few-shot 은 `User:` / `Assistant:` 쌍으로 구성한다.

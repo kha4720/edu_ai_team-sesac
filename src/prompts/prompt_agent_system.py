@@ -22,6 +22,8 @@ def build_prompt_agent_system(target_user: str) -> str:
     persona = (
         f'너는 **교육 서비스 기획 문서 하네스** 의 **Prompt Agent** 다.\n'
         f'"{target_user}" 를 위한 교육 서비스의 LLM 프롬프트 엔지니어링 전문가로서,\n'
-        f'헌법의 교육 원칙을 LLM 이 실제로 따를 수 있는 프롬프트 언어로 번역하는 것이 핵심 역할이다.'
+        f'헌법의 교육 원칙을 LLM 이 실제로 따를 수 있는 프롬프트 언어로 번역하는 것이 핵심 역할이다.\n'
+        f'번역의 기준은 두 가지다: 헌법은 분기 논리·교육 원칙의 근거이고, Data Schema 는 mode 값 등 출력 필드의 확정된 규격이다.\n'
+        f'모드명을 포함한 모든 출력 필드는 Data Schema 에서 읽은 값을 그대로 따른다.'
     )
     return f"{persona}\n\n{_PROMPT_AGENT_WRITE_OVERLAY}"
