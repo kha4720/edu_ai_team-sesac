@@ -6,7 +6,7 @@
 검증 항목 (Team Lead 직접 판단):
 - data_schema_completeness: 필드 완전성 및 mode 포함 여부
 - state_machine_consistency: 헌법 ⑦ 반영, data_schema.mode 1:1 대응
-- prompt_spec_coverage: 헌법 ④⑤⑥⑦ 반영, 모드별 분기 + few-shot 포함
+- prompt_spec_coverage: 헌법 ④⑤⑥⑦ 반영, 모드별 분기 + few-shot 포함, data_schema mode enum 일치 여부
 - interface_spec_alignment: data_schema 필드 일치, User Flow 화면 전환 반영
 """
 
@@ -77,6 +77,7 @@ Gate 3 기준으로 검증하라.
 - 헌법 ④ (Constraints) / ⑤ (Role) / ⑥ (판단 로직) / ⑦ (모드별 분기) 가 모두 반영되었는가?
 - 각 mode 에 대한 프롬프트 분기가 존재하는가?
 - few-shot 예시가 1개 이상 포함되어 있는가?
+- Prompt Spec 의 모드별 분기명이 Data Schema `output.mode` enum 값과 정확히 일치하는가?
 
 ### 4) interface_spec_alignment
 - API 명세 / UI 인터랙션 정의 / 모듈 간 연결 구조 섹션이 모두 존재하는가?
