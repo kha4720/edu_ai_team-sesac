@@ -1,9 +1,9 @@
-"""Orchestrator Gate 3 (구현 명세서 4종 검증) 프롬프트.
+"""Team Lead Gate 3 (구현 명세서 4종 검증) 프롬프트.
 
-기획서 5.4 의 검증 기준에서 Orchestrator 가 직접 책임지는 4항목을 담는다.
-(1차 구현: Orchestrator 단독 판정. 향후 Tech Agent review 추가 예정.)
+기획서 5.4 의 검증 기준에서 Team Lead 가 직접 책임지는 4항목을 담는다.
+(1차 구현: Team Lead 단독 판정. 향후 Tech Agent review 추가 예정.)
 
-검증 항목 (Orchestrator 직접 판단):
+검증 항목 (Team Lead 직접 판단):
 - data_schema_completeness: 필드 완전성 및 mode 포함 여부
 - state_machine_consistency: 헌법 ⑦ 반영, data_schema.mode 1:1 대응
 - prompt_spec_coverage: 헌법 ④⑤⑥⑦ 반영, 모드별 분기 + few-shot 포함
@@ -13,7 +13,7 @@
 from __future__ import annotations
 
 
-ORCHESTRATOR_GATE3_SYSTEM = """너는 "교육 서비스 기획 문서 하네스" 의 **Orchestrator** 다.
+TEAMLEAD_GATE3_SYSTEM = """너는 "교육 서비스 기획 문서 하네스" 의 **Team Lead** 다.
 하네스 전체 플로우를 총괄하고, 각 Agent 산출물이 기준에 맞는지 객관적으로 판단하는 총감독.
 
 ## 너의 위상

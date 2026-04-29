@@ -2,9 +2,9 @@
 
 `run_pipeline(harness_input)` 한 번 호출로 그래프 전체를 실행한다:
 1. constitution (Edu Agent)
-2. gate1 (Orchestrator)
+2. gate1 (Team Lead)
 3. service_brief / mvp_scope / user_flow / build_plan / qa_plan (PM/Tech)
-4. gate2 (Orchestrator + Edu + Tech 다중 검증자)
+4. gate2 (Team Lead + Edu + Tech 다중 검증자)
 5. 산출물 + 워크플로우 로그를 outputs/<프로젝트명>_<timestamp>/ 에 저장
 
 내부 구현은 `src.graph.HARNESS_GRAPH.stream()` 을 사용해 노드 단위 이벤트를
@@ -55,18 +55,18 @@ def _noop_progress(stage: str, message: str) -> None:
 # 노드명 → 사람이 읽기 좋은 진행 메시지
 _NODE_MESSAGES = {
     "constitution": ("constitution", "Edu Agent — 헌법 작성 중 (5번 호출, 약 20초)"),
-    "gate1": ("gate1", "Orchestrator — Gate 1 (헌법 검증)"),
+    "gate1": ("gate1", "Team Lead — Gate 1 (헌법 검증)"),
     "service_brief": ("service_brief", "PM Agent — Service Brief 작성"),
     "mvp_scope": ("mvp_scope", "PM Agent — MVP Scope 작성"),
     "user_flow": ("user_flow", "PM Agent — User Flow 작성"),
     "build_plan": ("build_plan", "Tech Agent — Build Plan 작성"),
     "qa_plan": ("qa_plan", "PM Agent — QA Plan 작성"),
-    "gate2": ("gate2", "Orchestrator + Edu + Tech — Gate 2 (5종 다중 검증)"),
+    "gate2": ("gate2", "Team Lead + Edu + Tech — Gate 2 (5종 다중 검증)"),
     "data_schema": ("data_schema", "PM Agent — Data Schema 작성"),
     "state_machine": ("state_machine", "PM Agent — State Machine 작성"),
     "prompt_spec": ("prompt_spec", "Prompt Agent — Prompt Spec 작성"),
     "interface_spec": ("interface_spec", "PM Agent — Interface Spec 작성"),
-    "gate3": ("gate3", "Orchestrator — Gate 3 (구현 명세서 4종 검증)"),
+    "gate3": ("gate3", "Team Lead — Gate 3 (구현 명세서 4종 검증)"),
 }
 
 # 노드 update 안에 들어있는 markdown/json 필드 → artifact_id 매핑

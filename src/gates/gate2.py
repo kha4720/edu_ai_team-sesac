@@ -1,10 +1,10 @@
 """Gate 2 — 기획문서 5종 검증 (다중 검증자 버전).
 
 기획서 5.3.6 의 검증 구조 그대로:
-- Orchestrator 가 직접 5항목 판단
+- Team Lead 가 직접 5항목 판단
 - Edu Agent 가 헌법 정합성 + 학습 효과성 review
 - Tech Agent 가 기술 실행 가능성 + 구현 계획 타당성 review
-- Orchestrator 가 자기 판단 + 두 review 를 종합해 최종 verdict
+- Team Lead 가 자기 판단 + 두 review 를 종합해 최종 verdict
 
 fail 시 feedback_memo 를 받아 5종 모두 재작성 → 재검증 (1회까지).
 재시도 후에도 fail 이면 conditional_pass + risk_memo.
@@ -25,9 +25,9 @@ from src.agents.tech_agent import (
 )
 from src.llm.prompt_builder import PromptContext, build_user_prompt
 from src.llm.solar import chat_json
-from src.prompts.orchestrator_gate2 import (
+from src.prompts.teamlead_gate2 import (
     GATE2_INSTRUCTION,
-    ORCHESTRATOR_GATE2_SYSTEM,
+    TEAMLEAD_GATE2_SYSTEM,
 )
 from src.schemas.input_schema import HarnessInput
 from src.schemas.workflow_state import GateResult
@@ -38,8 +38,8 @@ class GateCheck(BaseModel):
     issue: str = ""
 
 
-class Gate2OrchestratorVerdict(BaseModel):
-    """Orchestrator 의 직접 검증 5항목 응답."""
+class Gate2TeamLeadVerdict(BaseModel):
+    """Team Lead 의 직접 검증 5항목 응답."""
 
     verdict: Literal["pass", "fail"]
     checks: dict[str, GateCheck] = Field(default_factory=dict)
@@ -48,9 +48,9 @@ class Gate2OrchestratorVerdict(BaseModel):
 
 @dataclass
 class Gate2RoundResult:
-    """1회의 검증 라운드 결과 (Orchestrator + Edu review + Tech review 모두 포함)."""
+    """1회의 검증 라운드 결과 (Team Lead + Edu review + Tech review 모두 포함)."""
 
-    orchestrator: Gate2OrchestratorVerdict
+    team_lead: Gate2TeamLeadVerdict
     edu_review: dict[str, Any]
     tech_review: dict[str, Any]
     final_verdict: Literal["pass", "fail"]
@@ -59,9 +59,9 @@ class Gate2RoundResult:
     def issues_only(self) -> list[str]:
         """ok=false 인 항목들의 issue 텍스트만 추림."""
         out: list[str] = []
-        for name, ck in self.orchestrator.checks.items():
+        for name, ck in self.team_lead.checks.items():
             if not ck.ok:
-                out.append(f"Orchestrator/{name}: {ck.issue}")
+                out.append(f"Team Lead/{name}: {ck.issue}")
         for name in ("constitution_alignment", "learning_effectiveness"):
             ck = self.edu_review.get(name) or {}
             if not ck.get("ok", True):
@@ -104,10 +104,10 @@ class Gate2Result:
         lines = [f"## Gate 2 결과: **{self.final_verdict.value}**", ""]
         for i, rd in enumerate(self.rounds, start=1):
             lines.append(f"### 시도 {i} — 종합 verdict: {rd.final_verdict}")
-            # Orchestrator
+            # Team Lead
             lines.append("")
-            lines.append("**Orchestrator 직접 검증:**")
-            for name, ck in rd.orchestrator.checks.items():
+            lines.append("**Team Lead 직접 검증:**")
+            for name, ck in rd.team_lead.checks.items():
                 mark = "✅" if ck.ok else "❌"
                 lines.append(f"- {mark} {name}: {ck.issue or '(통과)'}")
             # Edu
@@ -141,11 +141,11 @@ class Gate2Result:
 # === 핵심 함수 ===
 
 
-def _orchestrator_judge(
+def _team_lead_judge(
     harness_input: HarnessInput,
     constitution_md: str,
     artifacts: PlanningArtifacts,
-) -> Gate2OrchestratorVerdict:
+) -> Gate2TeamLeadVerdict:
     ctx = PromptContext(
         global_blocks={
             "사용자 입력": harness_input.to_global_context(),
@@ -158,9 +158,9 @@ def _orchestrator_judge(
         instruction=GATE2_INSTRUCTION,
     )
     raw = chat_json(
-        system=ORCHESTRATOR_GATE2_SYSTEM,
+        system=TEAMLEAD_GATE2_SYSTEM,
         user=user_msg,
-        label="gate2-orchestrator",
+        label="gate2-team_lead",
         max_tokens=2000,
     )
     # 안전망: LLM 이 가끔 feedback_memo 같은 비-GateCheck 값을 checks 안에 넣음.
@@ -169,11 +169,11 @@ def _orchestrator_judge(
     raw["checks"] = {k: v for k, v in checks.items() if isinstance(v, dict)}
     if "feedback_memo" in checks and isinstance(checks["feedback_memo"], str) and not raw.get("feedback_memo"):
         raw["feedback_memo"] = checks["feedback_memo"]
-    return Gate2OrchestratorVerdict.model_validate(raw)
+    return Gate2TeamLeadVerdict.model_validate(raw)
 
 
 def _aggregate_round(
-    orchestrator: Gate2OrchestratorVerdict,
+    team_lead: Gate2TeamLeadVerdict,
     edu: dict[str, Any],
     tech: dict[str, Any],
 ) -> Gate2RoundResult:
@@ -186,10 +186,10 @@ def _aggregate_round(
     """
     issues: list[str] = []
 
-    # Orchestrator
-    for name, ck in orchestrator.checks.items():
+    # Team Lead
+    for name, ck in team_lead.checks.items():
         if not ck.ok:
-            issues.append(f"[Orchestrator/{name}] {ck.issue}")
+            issues.append(f"[Team Lead/{name}] {ck.issue}")
     # Edu
     for name in ("constitution_alignment", "learning_effectiveness"):
         ck = edu.get(name) or {}
@@ -203,17 +203,17 @@ def _aggregate_round(
 
     final = "pass" if not issues else "fail"
     aggregated = (
-        orchestrator.feedback_memo if final == "fail" and orchestrator.feedback_memo else ""
+        team_lead.feedback_memo if final == "fail" and team_lead.feedback_memo else ""
     )
     if issues:
         aggregated = (
-            (orchestrator.feedback_memo + "\n\n" if orchestrator.feedback_memo else "")
+            (team_lead.feedback_memo + "\n\n" if team_lead.feedback_memo else "")
             + "추가 검토 의견:\n- "
             + "\n- ".join(issues)
         )
 
     return Gate2RoundResult(
-        orchestrator=orchestrator,
+        team_lead=team_lead,
         edu_review=edu,
         tech_review=tech,
         final_verdict=final,
@@ -226,10 +226,10 @@ def _judge_round(
     constitution_md: str,
     artifacts: PlanningArtifacts,
 ) -> Gate2RoundResult:
-    print("[Gate 2] Orchestrator + Edu + Tech 병렬 검증 시작")
+    print("[Gate 2] Team Lead + Edu + Tech 병렬 검증 시작")
     blocks = artifacts.as_blocks()
     with ThreadPoolExecutor(max_workers=3) as pool:
-        f_orch = pool.submit(_orchestrator_judge, harness_input, constitution_md, artifacts)
+        f_orch = pool.submit(_team_lead_judge, harness_input, constitution_md, artifacts)
         f_edu = pool.submit(edu_review_gate2, harness_input, constitution_md, blocks)
         f_tech = pool.submit(tech_review_gate2, harness_input, constitution_md, blocks)
         orch = f_orch.result()
@@ -247,7 +247,7 @@ def run_gate2(
 
     재시도/조건부 통과 분기는 LangGraph conditional_edges (Phase B) 가 책임.
     """
-    print("[Gate 2] Orchestrator + Edu + Tech 다중 검증")
+    print("[Gate 2] Team Lead + Edu + Tech 다중 검증")
     r1 = _judge_round(harness_input, constitution_md, artifacts)
     final = (
         GateResult.PASS_ if r1.final_verdict == "pass" else GateResult.FAIL

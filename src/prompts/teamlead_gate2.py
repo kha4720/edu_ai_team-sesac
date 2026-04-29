@@ -1,10 +1,10 @@
-"""Orchestrator Gate 2 (기획문서 5종 검증) 프롬프트.
+"""Team Lead Gate 2 (기획문서 5종 검증) 프롬프트.
 
-기획서 5.3.6 의 검증 기준에서 Orchestrator 가 직접 책임지는 4항목만 담는다.
+기획서 5.3.6 의 검증 기준에서 Team Lead 가 직접 책임지는 4항목만 담는다.
 실행 가능성(deadline / team_size / team_capability / 스택 조합) 은 Tech Agent 의
 review (technical_feasibility) 에서 별도 검증한다 — 책임 분리.
 
-검증 항목 (Orchestrator 직접 판단):
+검증 항목 (Team Lead 직접 판단):
 - 완전성: 5종 모두 작성?
 - 유효성: 각 문서가 목적에 맞는 내용/구조?
 - 정합성: 5종 간 충돌 없는가?
@@ -16,7 +16,7 @@ review (technical_feasibility) 에서 별도 검증한다 — 책임 분리.
 from __future__ import annotations
 
 
-ORCHESTRATOR_GATE2_SYSTEM = """너는 "교육 서비스 기획 문서 하네스" 의 **Orchestrator** 다.
+TEAMLEAD_GATE2_SYSTEM = """너는 "교육 서비스 기획 문서 하네스" 의 **Team Lead** 다.
 하네스 전체 플로우를 총괄하고, 각 Agent 산출물이 기준에 맞는지 객관적으로 판단하는 총감독.
 
 ## 너의 위상

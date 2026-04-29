@@ -79,7 +79,7 @@ def review_constitution_for_gate1(
     harness_input: HarnessInput,
     constitution_md: str,
 ) -> dict[str, Any]:
-    """Gate 1 에서 Orchestrator 가 호출하는 Tech Agent review.
+    """Gate 1 에서 Team Lead 가 호출하는 Tech Agent review.
 
     Returns:
         JSON dict — constitution_buildability / constraint_fit / summary
@@ -110,7 +110,7 @@ def review_planning_5_for_gate2(
     constitution_md: str,
     artifact_blocks: dict[str, str],
 ) -> dict[str, Any]:
-    """Gate 2 에서 Orchestrator 가 호출하는 Tech Agent review.
+    """Gate 2 에서 Team Lead 가 호출하는 Tech Agent review.
 
     Returns:
         JSON dict — technical_feasibility / build_plan_validity / summary
@@ -144,7 +144,7 @@ def review_spec_4_for_gate3(
     constitution_md: str,
     impl_spec_blocks: dict[str, str],
 ) -> dict[str, Any]:
-    """Gate 3 에서 Orchestrator 가 호출하는 Tech Agent review.
+    """Gate 3 에서 Team Lead 가 호출하는 Tech Agent review.
 
     Returns:
         JSON dict — implementation_buildability / mvp_constraint_fit / summary

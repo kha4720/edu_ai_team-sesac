@@ -1,6 +1,6 @@
 """Edu Agent 의 Review 프롬프트.
 
-Gate 1/2/3 에서 Orchestrator 가 의견 수합을 요청할 때 사용한다.
+Gate 1/2/3 에서 Team Lead 가 의견 수합을 요청할 때 사용한다.
 Edu Agent 는 자기 작성 산출물(헌법) 이 아닌 PM/Tech 산출물에 대해
 **헌법 정합성 + 학습 효과성** 관점에서 review memo 를 작성.
 
@@ -46,7 +46,7 @@ EDU_REVIEW_GATE2_INSTRUCTION = """다음 기획문서 5종 (Service Brief / MVP 
 
 - `ok=true` 일 땐 issue 는 빈 문자열 또는 짧은 코멘트.
 - `ok=false` 일 땐 어느 문서/어느 부분이 문제인지 본문 인용 + 구체 결함 지적.
-- `summary`: 종합 한 문장 의견 (Orchestrator 가 종합 판단 시 참고).
+- `summary`: 종합 한 문장 의견 (Team Lead 가 종합 판단 시 참고).
 """
 
 

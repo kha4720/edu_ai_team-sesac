@@ -1,6 +1,6 @@
 """Tech Agent 의 Review 프롬프트.
 
-Gate 1/2/3 에서 Orchestrator 가 의견 수합을 요청할 때 사용한다.
+Gate 1/2/3 에서 Team Lead 가 의견 수합을 요청할 때 사용한다.
 Tech Agent 는 자기 작성 산출물(Build Plan) 외 산출물에 대해서도
 **기술 실행 가능성** 관점에서 review memo 를 작성.
 

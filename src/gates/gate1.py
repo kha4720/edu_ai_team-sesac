@@ -1,10 +1,10 @@
 """Gate 1 — 헌법(Constitution) 검증 (다중 검증자 버전).
 
 기획서 5.2.6 의 검증 구조 그대로:
-- Orchestrator 가 직접 4항목 판단 (completeness / top_consistency / internal_link / evidence_validity)
+- Team Lead 가 직접 4항목 판단 (completeness / top_consistency / internal_link / evidence_validity)
 - PM Agent 가 기획 활용성 + MVP 범위 현실성 review
 - Tech Agent 가 헌법 흐름 구현 가능성 + 실행 제약 적합성 review
-- Orchestrator 가 자기 판단 + 두 review 를 종합해 최종 verdict
+- Team Lead 가 자기 판단 + 두 review 를 종합해 최종 verdict
 
 설계 결정 (Phase A):
 - 함수 내부 retry 로직 제거. 1회 검증만 수행하고 결과 반환.
@@ -29,9 +29,9 @@ from src.agents.tech_agent import (
 )
 from src.llm.prompt_builder import PromptContext, build_user_prompt
 from src.llm.solar import chat_json
-from src.prompts.orchestrator_gate1 import (
+from src.prompts.teamlead_gate1 import (
     GATE1_INSTRUCTION,
-    ORCHESTRATOR_GATE1_SYSTEM,
+    TEAMLEAD_GATE1_SYSTEM,
 )
 from src.schemas.input_schema import HarnessInput
 from src.schemas.workflow_state import GateResult
@@ -42,8 +42,8 @@ class GateCheck(BaseModel):
     issue: str = ""
 
 
-class Gate1OrchestratorVerdict(BaseModel):
-    """Orchestrator 의 직접 검증 4항목 응답."""
+class Gate1TeamLeadVerdict(BaseModel):
+    """Team Lead 의 직접 검증 4항목 응답."""
 
     verdict: Literal["pass", "fail"]
     checks: dict[str, GateCheck] = Field(default_factory=dict)
@@ -52,9 +52,9 @@ class Gate1OrchestratorVerdict(BaseModel):
 
 @dataclass
 class Gate1RoundResult:
-    """1회의 검증 라운드 결과 (Orchestrator + PM review + Tech review 모두 포함)."""
+    """1회의 검증 라운드 결과 (Team Lead + PM review + Tech review 모두 포함)."""
 
-    orchestrator: Gate1OrchestratorVerdict
+    team_lead: Gate1TeamLeadVerdict
     pm_review: dict[str, Any]
     tech_review: dict[str, Any]
     final_verdict: Literal["pass", "fail"]
@@ -63,9 +63,9 @@ class Gate1RoundResult:
     def issues_only(self) -> list[str]:
         """ok=false 인 항목들의 issue 텍스트만 추림."""
         out: list[str] = []
-        for name, ck in self.orchestrator.checks.items():
+        for name, ck in self.team_lead.checks.items():
             if not ck.ok:
-                out.append(f"Orchestrator/{name}: {ck.issue}")
+                out.append(f"Team Lead/{name}: {ck.issue}")
         for name in ("planning_usability", "mvp_realism"):
             ck = self.pm_review.get(name) or {}
             if not ck.get("ok", True):
@@ -88,8 +88,8 @@ class Gate1Result:
     def to_log_markdown(self) -> str:
         rd = self.round_result
         lines = [f"## Gate 1 결과: **{self.final_verdict.value}**", ""]
-        lines.append("**Orchestrator 직접 검증:**")
-        for name, ck in rd.orchestrator.checks.items():
+        lines.append("**Team Lead 직접 검증:**")
+        for name, ck in rd.team_lead.checks.items():
             mark = "✅" if ck.ok else "❌"
             lines.append(f"- {mark} {name}: {ck.issue or '(통과)'}")
         lines.append("")
@@ -117,9 +117,9 @@ class Gate1Result:
 # === 핵심 함수 ===
 
 
-def _orchestrator_judge(
+def _team_lead_judge(
     harness_input: HarnessInput, constitution_md: str
-) -> Gate1OrchestratorVerdict:
+) -> Gate1TeamLeadVerdict:
     ctx = PromptContext(
         global_blocks={"사용자 입력": harness_input.to_global_context()},
         primary_blocks={"검증 대상 헌법": constitution_md},
@@ -129,9 +129,9 @@ def _orchestrator_judge(
         instruction=GATE1_INSTRUCTION,
     )
     raw = chat_json(
-        system=ORCHESTRATOR_GATE1_SYSTEM,
+        system=TEAMLEAD_GATE1_SYSTEM,
         user=user_msg,
-        label="gate1-orchestrator",
+        label="gate1-team_lead",
         max_tokens=1500,
     )
     # 안전망: LLM 이 가끔 feedback_memo 를 checks 안에 넣음 (Gate 2 에서도 발생했던 패턴)
@@ -139,11 +139,11 @@ def _orchestrator_judge(
     raw["checks"] = {k: v for k, v in checks.items() if isinstance(v, dict)}
     if "feedback_memo" in checks and isinstance(checks["feedback_memo"], str) and not raw.get("feedback_memo"):
         raw["feedback_memo"] = checks["feedback_memo"]
-    return Gate1OrchestratorVerdict.model_validate(raw)
+    return Gate1TeamLeadVerdict.model_validate(raw)
 
 
 def _aggregate_round(
-    orchestrator: Gate1OrchestratorVerdict,
+    team_lead: Gate1TeamLeadVerdict,
     pm: dict[str, Any],
     tech: dict[str, Any],
 ) -> Gate1RoundResult:
@@ -153,9 +153,9 @@ def _aggregate_round(
     """
     issues: list[str] = []
 
-    for name, ck in orchestrator.checks.items():
+    for name, ck in team_lead.checks.items():
         if not ck.ok:
-            issues.append(f"[Orchestrator/{name}] {ck.issue}")
+            issues.append(f"[Team Lead/{name}] {ck.issue}")
     for name in ("planning_usability", "mvp_realism"):
         ck = pm.get(name) or {}
         if not ck.get("ok", True):
@@ -166,16 +166,16 @@ def _aggregate_round(
             issues.append(f"[Tech/{name}] {ck.get('issue', '')}")
 
     final = "pass" if not issues else "fail"
-    aggregated = orchestrator.feedback_memo if final == "fail" and orchestrator.feedback_memo else ""
+    aggregated = team_lead.feedback_memo if final == "fail" and team_lead.feedback_memo else ""
     if issues:
         aggregated = (
-            (orchestrator.feedback_memo + "\n\n" if orchestrator.feedback_memo else "")
+            (team_lead.feedback_memo + "\n\n" if team_lead.feedback_memo else "")
             + "추가 검토 의견:\n- "
             + "\n- ".join(issues)
         )
 
     return Gate1RoundResult(
-        orchestrator=orchestrator,
+        team_lead=team_lead,
         pm_review=pm,
         tech_review=tech,
         final_verdict=final,
@@ -191,9 +191,9 @@ def run_gate1(
 
     재시도/조건부 통과 분기는 LangGraph conditional_edges (Phase B) 가 책임.
     """
-    print("[Gate 1] Orchestrator + PM + Tech 병렬 검증 시작")
+    print("[Gate 1] Team Lead + PM + Tech 병렬 검증 시작")
     with ThreadPoolExecutor(max_workers=3) as pool:
-        f_orch = pool.submit(_orchestrator_judge, harness_input, constitution.markdown)
+        f_orch = pool.submit(_team_lead_judge, harness_input, constitution.markdown)
         f_pm = pool.submit(pm_review_gate1, harness_input, constitution.markdown)
         f_tech = pool.submit(tech_review_gate1, harness_input, constitution.markdown)
         orch = f_orch.result()

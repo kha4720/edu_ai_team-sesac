@@ -72,18 +72,18 @@ graph TD;
 | 노드 | 담당 Agent | 산출물 / 결과 |
 |---|---|---|
 | `constitution` | Edu Agent | `constitution.md` (헌법 7항목) |
-| `gate1` | Orchestrator + PM + Tech | 헌법 다중 검증 + retry_count / conditional_pass 처리 |
+| `gate1` | Team Lead + PM + Tech | 헌법 다중 검증 + retry_count / conditional_pass 처리 |
 | `service_brief` | PM Agent | `service_brief.md` |
 | `mvp_scope` | PM Agent | `mvp_scope.md` |
 | `user_flow` | PM Agent | `user_flow.md` |
 | `build_plan` | Tech Agent | `build_plan.md` |
 | `qa_plan` | PM Agent | `qa_plan.md` |
-| `gate2` | Orchestrator + Edu + Tech | 기획문서 5종 다중 검증 + retry_count / conditional_pass 처리 |
+| `gate2` | Team Lead + Edu + Tech | 기획문서 5종 다중 검증 + retry_count / conditional_pass 처리 |
 | `data_schema` | PM Agent | `data_schema.json` (입출력 필드 + mode) |
 | `state_machine` | PM Agent | `state_machine.md` (상태 전이 + mode 매핑) |
 | `prompt_spec` | Prompt Agent | `prompt_spec.md` (헌법 ④⑤⑥⑦ → 프롬프트 변환) |
 | `interface_spec` | PM Agent | `interface_spec.md` (API / UI / 모듈 계약서) |
-| `gate3` | Orchestrator + Tech + Edu | 구현 명세서 4종 다중 검증 + retry_count / conditional_pass 처리 |
+| `gate3` | Team Lead + Tech + Edu | 구현 명세서 4종 다중 검증 + retry_count / conditional_pass 처리 |
 
 ## State 구조 (TypedDict)
 

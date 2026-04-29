@@ -33,7 +33,7 @@ st.set_page_config(
 
 st.title("📚 교육 서비스 기획 문서 하네스")
 st.caption(
-    "사용자 아이디어를 입력하면 4개 LLM 에이전트(Edu / PM / Tech / Prompt) + Orchestrator 가 "
+    "사용자 아이디어를 입력하면 4개 LLM 에이전트(Edu / PM / Tech / Prompt) + Team Lead 가 "
     "협업하여 헌법 + 기획문서 5종 + 구현 명세서 4종을 자동 생성합니다."
 )
 
@@ -129,18 +129,18 @@ progress_slot = st.empty()
 # 산출물 탭 정의 — (artifact_id, 탭 라벨, 작성자)
 ARTIFACT_VIEW = [
     ("constitution",   "📜 헌법",            "Edu Agent"),
-    ("gate1_log",      "🛡️ Gate 1",          "Orchestrator"),
+    ("gate1_log",      "🛡️ Gate 1",          "Team Lead"),
     ("service_brief",  "📝 Service Brief",   "PM Agent"),
     ("mvp_scope",      "🎯 MVP Scope",       "PM Agent"),
     ("user_flow",      "🧭 User Flow",       "PM Agent"),
     ("build_plan",     "🔧 Build Plan",      "Tech Agent"),
     ("qa_plan",        "🧪 QA Plan",         "PM Agent"),
-    ("gate2_log",      "🛡️ Gate 2",          "Orchestrator + Edu + Tech"),
+    ("gate2_log",      "🛡️ Gate 2",          "Team Lead + Edu + Tech"),
     ("data_schema",    "📊 Data Schema",     "PM Agent"),
     ("state_machine",  "🔀 State Machine",   "PM Agent"),
     ("prompt_spec",    "💬 Prompt Spec",     "Prompt Agent"),
     ("interface_spec", "🔗 Interface Spec",  "PM Agent"),
-    ("gate3_log",      "🛡️ Gate 3",          "Orchestrator"),
+    ("gate3_log",      "🛡️ Gate 3",          "Team Lead"),
 ]
 
 # 탭 8개 생성 + 각 탭 안에 placeholder

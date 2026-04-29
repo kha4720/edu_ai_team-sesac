@@ -1,6 +1,6 @@
 """PM Agent 의 Review 프롬프트.
 
-Gate 1 에서 Orchestrator 가 의견 수합을 요청할 때 사용한다.
+Gate 1 에서 Team Lead 가 의견 수합을 요청할 때 사용한다.
 PM Agent 는 Edu Agent 가 작성한 헌법이 "후속 기획문서 작성의 기준으로 활용 가능한가"
 관점에서 review memo 를 작성한다.
 

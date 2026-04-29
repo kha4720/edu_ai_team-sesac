@@ -172,7 +172,7 @@ def review_planning_5_for_gate2(
     constitution_md: str,
     artifact_blocks: dict[str, str],
 ) -> dict[str, Any]:
-    """Gate 2 에서 Orchestrator 가 호출하는 Edu Agent review.
+    """Gate 2 에서 Team Lead 가 호출하는 Edu Agent review.
 
     Returns:
         JSON dict — constitution_alignment / learning_effectiveness / summary
@@ -206,7 +206,7 @@ def review_spec_4_for_gate3(
     constitution_md: str,
     impl_spec_blocks: dict[str, str],
 ) -> dict[str, Any]:
-    """Gate 3 에서 Orchestrator 가 호출하는 Edu Agent review.
+    """Gate 3 에서 Team Lead 가 호출하는 Edu Agent review.
 
     Returns:
         JSON dict — constitution_alignment / learning_logic_fit / summary

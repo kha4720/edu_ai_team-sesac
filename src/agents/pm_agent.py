@@ -373,7 +373,7 @@ def review_constitution_for_gate1(
     harness_input: HarnessInput,
     constitution_md: str,
 ) -> dict[str, Any]:
-    """Gate 1 에서 Orchestrator 가 호출하는 PM Agent review.
+    """Gate 1 에서 Team Lead 가 호출하는 PM Agent review.
 
     Returns:
         JSON dict — planning_usability / mvp_realism / summary

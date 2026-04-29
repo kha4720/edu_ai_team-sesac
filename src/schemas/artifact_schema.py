@@ -1,7 +1,7 @@
 """Artifact Schema (기획서 4.3 / 5.1).
 
 산출물 10종(헌법 1 + 기획 5 + 구현명세 4)의 메타정보를 코드로 정의.
-Orchestrator 가 "지금 만들 문서가 뭐고, 의존성이 채워졌는지" 판단하는 기준이 된다.
+Team Lead 가 "지금 만들 문서가 뭐고, 의존성이 채워졌는지" 판단하는 기준이 된다.
 """
 
 from __future__ import annotations
@@ -356,7 +356,7 @@ INTERFACE_SPEC = ArtifactSpec(
 )
 
 
-# 전체 산출물 레지스트리 (Orchestrator 가 순서대로 처리)
+# 전체 산출물 레지스트리 (Team Lead 가 순서대로 처리)
 ARTIFACT_REGISTRY: dict[str, ArtifactSpec] = {
     a.artifact_id: a
     for a in [
