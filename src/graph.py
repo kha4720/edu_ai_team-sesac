@@ -261,6 +261,7 @@ def node_prompt_spec(state: HarnessState) -> dict[str, Any]:
         mvp_scope_md=state["mvp_scope_md"],
         user_flow_md=state["user_flow_md"],
         qa_plan_md=state["qa_plan_md"],
+        build_plan_md=state["build_plan_md"],
     )
     return {"prompt_spec_md": art.markdown}
 

@@ -25,15 +25,16 @@ from src.schemas.input_schema import (
 
 
 st.set_page_config(
-    page_title="교육 서비스 기획 문서 하네스",
+    page_title="AI 기반 교육 서비스 기획 하네스",
     page_icon="📚",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-st.title("📚 교육 서비스 기획 문서 하네스")
+st.title("📚 AI 기반 교육 서비스 기획 하네스")
 st.caption(
-    "사용자 아이디어를 입력하면 4개 LLM 에이전트(Edu / PM / Tech / Prompt) + Team Lead 가 "
+    "LLM API를 활용하는 AI 교육 서비스 기획에 특화된 하네스. "
+    "4개 LLM 에이전트(Edu / PM / Tech / Prompt) + Team Lead 가 "
     "협업하여 헌법 + 기획문서 5종 + 구현 명세서 4종을 자동 생성합니다."
 )
 

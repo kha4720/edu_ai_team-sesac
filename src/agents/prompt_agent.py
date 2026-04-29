@@ -27,13 +27,14 @@ def write_prompt_spec(
     mvp_scope_md: str,
     user_flow_md: str,
     qa_plan_md: str,
+    build_plan_md: str,
 ) -> ArtifactOutput:
     """Prompt Spec 작성.
 
     Inputs (기획서 5.4):
         Global: constitution
         Primary: constitution, data_schema
-        Secondary: mvp_scope, user_flow, qa_plan
+        Secondary: mvp_scope, user_flow, qa_plan, build_plan
 
     harness_input 은 target_user 페르소나 구성에만 사용.
     """
@@ -48,6 +49,7 @@ def write_prompt_spec(
             "MVP Scope": mvp_scope_md,
             "User Flow": user_flow_md,
             "QA Plan": qa_plan_md,
+            "Build Plan": build_plan_md,
         },
     )
     user_msg = build_user_prompt(
