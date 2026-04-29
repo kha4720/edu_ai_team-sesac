@@ -158,7 +158,7 @@ if _stored is not None:
     for _aid, _path in _stored.artifact_paths.items():
         _slot = artifact_slots.get(_aid)
         if _slot and _path.exists():
-            _slot.markdown(_path.read_text(encoding="utf-8"))
+            _slot.markdown(_path.read_text(encoding="utf-8"), unsafe_allow_html=True)
     for _key, _fn in [
         ("gate1_log", _stored.gate1.to_log_markdown),
         ("gate2_log", _stored.gate2.to_log_markdown),
@@ -166,7 +166,7 @@ if _stored is not None:
     ]:
         _slot = artifact_slots.get(_key)
         if _slot:
-            _slot.markdown(_fn())
+            _slot.markdown(_fn(), unsafe_allow_html=True)
 
 
 # ============================================================
@@ -212,7 +212,7 @@ if run_button:
         slot = artifact_slots.get(artifact_id)
         if slot is None:
             return
-        slot.markdown(markdown)
+        slot.markdown(markdown, unsafe_allow_html=True)
 
     try:
         result: PipelineResult = run_pipeline(
@@ -246,6 +246,30 @@ if _result is not None:
     cols[0].metric("Gate 1 (헌법 검증)", g1)
     cols[1].metric("Gate 2 (기획문서 5종)", g2)
     cols[2].metric("Gate 3 (구현 명세서 4종)", g3)
+
+    if _result.step_timings:
+        _STEP_LABELS = {
+            "constitution":   "헌법 (Edu Agent)",
+            "gate1":          "Gate 1",
+            "service_brief":  "Service Brief (PM)",
+            "mvp_scope":      "MVP Scope (PM)",
+            "user_flow":      "User Flow (PM)",
+            "build_plan":     "Build Plan (Tech)",
+            "qa_plan":        "QA Plan (PM)",
+            "gate2":          "Gate 2",
+            "data_schema":    "Data Schema (PM)",
+            "state_machine":  "State Machine (PM) ┐병렬",
+            "prompt_spec":    "Prompt Spec (Prompt) ┘병렬",
+            "interface_spec": "Interface Spec (PM)",
+            "gate3":          "Gate 3",
+        }
+        st.markdown("### ⏱️ 단계별 실행 시간")
+        timing_rows = [
+            {"단계": _STEP_LABELS.get(k, k), "소요 시간": f"{v:.1f}s"}
+            for k, v in _result.step_timings.items()
+        ]
+        st.table(timing_rows)
+        st.caption(f"총 소요 시간: **{_result.total_elapsed:.1f}초**")
 
     st.markdown("### 📥 산출물 다운로드")
     dl_cols = st.columns(5)

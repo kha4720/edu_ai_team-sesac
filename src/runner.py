@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -43,6 +44,8 @@ class PipelineResult:
     gate3: Gate3Result
     artifact_paths: dict[str, Path] = field(default_factory=dict)
     workflow_log_path: Path | None = None
+    step_timings: dict[str, float] = field(default_factory=dict)
+    total_elapsed: float = 0.0
 
 
 def _noop_progress(stage: str, message: str) -> None:
@@ -111,13 +114,22 @@ def run_pipeline(
     initial_state = {"harness_input": harness_input}
     final_state: dict[str, object] = {}
 
+    step_timings: dict[str, float] = {}
+    t_start = time.time()
+    t_prev = t_start
+
     for chunk in HARNESS_GRAPH.stream(initial_state):
         # chunk = {"노드명": {"필드명": 값, ...}}
         for node_name, updates in chunk.items():
-            # 진행 메시지
+            t_now = time.time()
+
+            # 진행 메시지 + 타이밍 기록
             if node_name in _NODE_MESSAGES:
                 stage_id, msg = _NODE_MESSAGES[node_name]
-                progress(stage_id, msg + " — 시작")
+                elapsed = round(t_now - t_prev, 1)
+                step_timings[node_name] = elapsed
+                t_prev = t_now
+                progress(stage_id, msg + f" — 완료 ({elapsed}s)")
 
             # 누적 state 업데이트
             final_state.update(updates)
@@ -190,4 +202,6 @@ def run_pipeline(
         gate3=gate3,
         artifact_paths=artifact_paths,
         workflow_log_path=log_path,
+        step_timings=step_timings,
+        total_elapsed=round(time.time() - t_start, 1),
     )
