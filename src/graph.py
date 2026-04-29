@@ -416,8 +416,8 @@ def build_harness_graph() -> Any:
     g.add_edge("data_schema", "state_machine")
     g.add_edge("data_schema", "prompt_spec")
     g.add_edge("state_machine", "interface_spec")
+    g.add_edge("prompt_spec", "interface_spec")
     g.add_edge("interface_spec", "gate3")
-    g.add_edge("prompt_spec", "gate3")
 
     # Gate 3 분기 — PASS → END, FAIL → 4종 재작성
     g.add_conditional_edges(
