@@ -20,6 +20,7 @@ from typing import Callable
 
 from src.gates.gate1 import Gate1Result
 from src.gates.gate2 import Gate2Result, PlanningArtifacts
+from src.gates.gate3 import Gate3Result
 from src.graph import HARNESS_GRAPH
 from src.schemas.input_schema import HarnessInput
 
@@ -39,6 +40,7 @@ class PipelineResult:
     gate1: Gate1Result
     artifacts: PlanningArtifacts
     gate2: Gate2Result
+    gate3: Gate3Result
     artifact_paths: dict[str, Path] = field(default_factory=dict)
     workflow_log_path: Path | None = None
 
@@ -57,9 +59,14 @@ _NODE_MESSAGES = {
     "build_plan": ("build_plan", "Tech Agent — Build Plan 작성"),
     "qa_plan": ("qa_plan", "PM Agent — QA Plan 작성"),
     "gate2": ("gate2", "Orchestrator + Edu + Tech — Gate 2 (5종 다중 검증)"),
+    "data_schema": ("data_schema", "PM Agent — Data Schema 작성"),
+    "state_machine": ("state_machine", "PM Agent — State Machine 작성"),
+    "prompt_spec": ("prompt_spec", "Prompt Agent — Prompt Spec 작성"),
+    "interface_spec": ("interface_spec", "PM Agent — Interface Spec 작성"),
+    "gate3": ("gate3", "Orchestrator — Gate 3 (구현 명세서 4종 검증)"),
 }
 
-# 노드 update 안에 들어있는 markdown 필드 → artifact_id 매핑
+# 노드 update 안에 들어있는 markdown/json 필드 → artifact_id 매핑
 _NODE_TO_ARTIFACT = {
     "constitution_md": "constitution",
     "service_brief_md": "service_brief",
@@ -67,6 +74,10 @@ _NODE_TO_ARTIFACT = {
     "user_flow_md": "user_flow",
     "build_plan_md": "build_plan",
     "qa_plan_md": "qa_plan",
+    "data_schema_json": "data_schema",
+    "state_machine_md": "state_machine",
+    "prompt_spec_md": "prompt_spec",
+    "interface_spec_md": "interface_spec",
 }
 
 
@@ -121,12 +132,19 @@ def run_pipeline(
                 push_artifact("gate1_log", updates["gate1_result"].to_log_markdown())
             if node_name == "gate2" and "gate2_result" in updates:
                 push_artifact("gate2_log", updates["gate2_result"].to_log_markdown())
+            if node_name == "gate3" and "gate3_result" in updates:
+                push_artifact("gate3_log", updates["gate3_result"].to_log_markdown())
 
     # 최종 state 에서 결과 추출
     constitution_md = str(final_state["constitution_md"])
     gate1: Gate1Result = final_state["gate1_result"]  # type: ignore[assignment]
     gate2: Gate2Result = final_state["gate2_result"]  # type: ignore[assignment]
+    gate3: Gate3Result = final_state["gate3_result"]  # type: ignore[assignment]
     artifacts = gate2.artifacts
+    data_schema_json = str(final_state["data_schema_json"])
+    state_machine_md = str(final_state["state_machine_md"])
+    prompt_spec_md = str(final_state["prompt_spec_md"])
+    interface_spec_md = str(final_state["interface_spec_md"])
 
     # 디스크 저장
     progress("save", "산출물 디스크 저장")
@@ -136,8 +154,12 @@ def run_pipeline(
     (out_dir / "user_flow.md").write_text(artifacts.user_flow.markdown, encoding="utf-8")
     (out_dir / "build_plan.md").write_text(artifacts.build_plan.markdown, encoding="utf-8")
     (out_dir / "qa_plan.md").write_text(artifacts.qa_plan.markdown, encoding="utf-8")
+    (out_dir / "data_schema.json").write_text(data_schema_json, encoding="utf-8")
+    (out_dir / "state_machine.md").write_text(state_machine_md, encoding="utf-8")
+    (out_dir / "prompt_spec.md").write_text(prompt_spec_md, encoding="utf-8")
+    (out_dir / "interface_spec.md").write_text(interface_spec_md, encoding="utf-8")
 
-    log_md = gate1.to_log_markdown() + "\n\n" + gate2.to_log_markdown()
+    log_md = gate1.to_log_markdown() + "\n\n" + gate2.to_log_markdown() + "\n\n" + gate3.to_log_markdown()
     log_path = out_dir / "_workflow_log.md"
     log_path.write_text(log_md, encoding="utf-8")
 
@@ -153,6 +175,10 @@ def run_pipeline(
         "user_flow": out_dir / "user_flow.md",
         "build_plan": out_dir / "build_plan.md",
         "qa_plan": out_dir / "qa_plan.md",
+        "data_schema": out_dir / "data_schema.json",
+        "state_machine": out_dir / "state_machine.md",
+        "prompt_spec": out_dir / "prompt_spec.md",
+        "interface_spec": out_dir / "interface_spec.md",
     }
 
     return PipelineResult(
@@ -161,6 +187,7 @@ def run_pipeline(
         gate1=gate1,
         artifacts=artifacts,
         gate2=gate2,
+        gate3=gate3,
         artifact_paths=artifact_paths,
         workflow_log_path=log_path,
     )

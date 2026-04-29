@@ -1,0 +1,54 @@
+"""Interface Spec 작성 지시문.
+
+기획서 5.4 / artifact_schema.INTERFACE_SPEC 기준. PM Agent 가 사용한다.
+"""
+
+from __future__ import annotations
+
+
+INTERFACE_SPEC_INSTRUCTION = """**Interface Spec** 을 작성한다.
+
+## 한 줄 정의
+화면, API, 모듈 간 입출력 연결 기준을 정의한 프론트-백 계약서.
+
+## 작성 원칙
+- [Primary Inputs] 의 User Flow 화면/전환을 **API 요청·응답 흐름**으로 변환한다.
+- [Primary Inputs] 의 Data Schema 필드를 **그대로** API 요청·응답 바디에 사용한다.
+  (필드명·타입을 임의로 변경하지 않는다.)
+- [Secondary Inputs] 의 State Machine 의 mode 값별 응답 형태를 UI 렌더링 규칙으로 명시한다.
+- [Secondary Inputs] 의 Build Plan 의 모듈을 API 엔드포인트와 연결한다.
+- 에러 처리 (입력 검증 실패 / 서버 오류 / 타임아웃) 를 포함한다.
+
+## 작성 형식 (정확히 이 머리말 3개를 모두 사용)
+```
+# Interface Spec
+
+## 1. API 명세
+각 화면 전환·사용자 액션에 대응하는 API 엔드포인트.
+
+### POST /api/(경로)
+- 요청 바디: data_schema input 필드 기반
+- 응답 바디: data_schema output 필드 기반
+- 에러 응답: 400 / 500 케이스 포함
+
+## 2. UI 인터랙션 정의
+화면별 사용자 액션과 LLM 응답 렌더링 규칙.
+
+| 화면 | 사용자 액션 | 요청 API | mode 별 렌더링 |
+|------|------------|---------|--------------|
+
+## 3. 모듈 간 연결 구조
+프론트엔드 → API → LLM → 응답 처리 흐름.
+
+(다이어그램 또는 단계별 흐름 텍스트)
+```
+"""
+
+
+INTERFACE_SPEC_OUTPUT_HINT = """다른 안내문·코드블록·메타 설명 없이 본문만 출력한다.
+첫 줄은 정확히 "# Interface Spec" 머리말로 시작한다.
+다음 3개 머리말이 **정확히 이 순서대로** 모두 등장해야 한다:
+  1) "## 1. API 명세"
+  2) "## 2. UI 인터랙션 정의"
+  3) "## 3. 모듈 간 연결 구조"
+순서·번호·텍스트가 모두 정확히 일치해야 한다."""

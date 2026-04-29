@@ -46,14 +46,19 @@ from langgraph.graph import END, START, StateGraph
 
 from src.agents.edu_agent import write_constitution
 from src.agents.pm_agent import (
-    write_mvp_scope,
-    write_qa_plan,
     write_service_brief,
+    write_mvp_scope,
     write_user_flow,
+    write_qa_plan,
+    write_data_schema,
+    write_state_machine,
+    write_interface_spec,
 )
 from src.agents.tech_agent import write_build_plan
+from src.agents.prompt_agent import write_prompt_spec
 from src.gates.gate1 import Gate1Result, run_gate1
 from src.gates.gate2 import Gate2Result, PlanningArtifacts, run_gate2
+from src.gates.gate3 import Gate3Result, run_gate3
 from src.schemas.input_schema import HarnessInput
 from src.schemas.workflow_state import GateResult
 
@@ -83,6 +88,17 @@ class HarnessState(TypedDict, total=False):
     gate2_result: Gate2Result
     gate2_retry_count: int
     gate2_risk_memo: str
+
+    # Step 4 — 구현 명세서 4종
+    data_schema_json: str   # JSON 텍스트 (output_format=JSON)
+    state_machine_md: str
+    prompt_spec_md: str
+    interface_spec_md: str
+
+    # Gate 3
+    gate3_result: Gate3Result
+    gate3_retry_count: int
+    gate3_risk_memo: str
 
 
 # ============================================================
@@ -213,6 +229,85 @@ def node_gate2(state: HarnessState) -> dict[str, Any]:
     return updates
 
 
+def node_data_schema(state: HarnessState) -> dict[str, Any]:
+    art = write_data_schema(
+        state["harness_input"],
+        constitution_md=state["constitution_md"],
+        mvp_scope_md=state["mvp_scope_md"],
+        user_flow_md=state["user_flow_md"],
+        build_plan_md=state["build_plan_md"],
+    )
+    return {"data_schema_json": art.markdown}
+
+
+def node_state_machine(state: HarnessState) -> dict[str, Any]:
+    art = write_state_machine(
+        state["harness_input"],
+        constitution_md=state["constitution_md"],
+        user_flow_md=state["user_flow_md"],
+        qa_plan_md=state["qa_plan_md"],
+        build_plan_md=state["build_plan_md"],
+        mvp_scope_md=state["mvp_scope_md"],
+        data_schema_json=state["data_schema_json"],
+    )
+    return {"state_machine_md": art.markdown}
+
+
+def node_prompt_spec(state: HarnessState) -> dict[str, Any]:
+    art = write_prompt_spec(
+        state["harness_input"],
+        constitution_md=state["constitution_md"],
+        data_schema_json=state["data_schema_json"],
+        mvp_scope_md=state["mvp_scope_md"],
+        user_flow_md=state["user_flow_md"],
+        qa_plan_md=state["qa_plan_md"],
+    )
+    return {"prompt_spec_md": art.markdown}
+
+
+def node_interface_spec(state: HarnessState) -> dict[str, Any]:
+    art = write_interface_spec(
+        state["harness_input"],
+        constitution_md=state["constitution_md"],
+        user_flow_md=state["user_flow_md"],
+        data_schema_json=state["data_schema_json"],
+        build_plan_md=state["build_plan_md"],
+        state_machine_md=state["state_machine_md"],
+    )
+    return {"interface_spec_md": art.markdown}
+
+
+def node_gate3(state: HarnessState) -> dict[str, Any]:
+    """Gate 3 — 구현 명세서 4종 검증.
+
+    node_gate1/2 와 동일 패턴: 2회차 fail 이면 CONDITIONAL_PASS 로 덮어쓰기.
+    """
+    impl_specs = {
+        "Data Schema": state["data_schema_json"],
+        "State Machine": state["state_machine_md"],
+        "Prompt Spec": state["prompt_spec_md"],
+        "Interface Spec": state["interface_spec_md"],
+    }
+    result = run_gate3(state["constitution_md"], impl_specs)
+
+    retry_before = state.get("gate3_retry_count", 0)
+    updates: dict[str, Any] = {
+        "gate3_result": result,
+        "gate3_retry_count": retry_before + 1,
+    }
+
+    if result.final_verdict == GateResult.FAIL and retry_before >= 1:
+        risk_issues = result.issues_only()
+        updates["gate3_risk_memo"] = (
+            "Gate 3 재검토 후에도 fail. 잔존 issue: " + " | ".join(risk_issues)
+        )
+        updates["gate3_result"] = replace(
+            result, final_verdict=GateResult.CONDITIONAL_PASS
+        )
+
+    return updates
+
+
 # ============================================================
 # Conditional edges — 라우터 함수
 # ============================================================
@@ -235,17 +330,31 @@ def route_after_gate1(state: HarnessState) -> Literal["service_brief", "constitu
     }[verdict]
 
 
-def route_after_gate2(state: HarnessState) -> Literal["service_brief", "__end__"]:
+def route_after_gate2(state: HarnessState) -> Literal["service_brief", "data_schema"]:
     """Gate 2 후 다음 노드 매핑.
 
-    PASS / CONDITIONAL_PASS → __end__       (종료)
+    PASS / CONDITIONAL_PASS → data_schema (Step 4 시작)
     FAIL                    → service_brief (5종 재작성)
     """
     verdict = state["gate2_result"].final_verdict
     return {
+        GateResult.PASS_:             "data_schema",
+        GateResult.CONDITIONAL_PASS:  "data_schema",
+        GateResult.FAIL:              "service_brief",
+    }[verdict]
+
+
+def route_after_gate3(state: HarnessState) -> Literal["data_schema", "__end__"]:
+    """Gate 3 후 다음 노드 매핑.
+
+    PASS / CONDITIONAL_PASS → __end__     (전체 완료)
+    FAIL                    → data_schema (4종 재작성)
+    """
+    verdict = state["gate3_result"].final_verdict
+    return {
         GateResult.PASS_:             "__end__",
         GateResult.CONDITIONAL_PASS:  "__end__",
-        GateResult.FAIL:              "service_brief",
+        GateResult.FAIL:              "data_schema",
     }[verdict]
 
 
@@ -258,19 +367,27 @@ def build_harness_graph() -> Any:
     """하네스 워크플로우 그래프 빌드 + 컴파일."""
     g = StateGraph(HarnessState)
 
+    # Step 2
     g.add_node("constitution", node_constitution)
     g.add_node("gate1", node_gate1)
+    # Step 3
     g.add_node("service_brief", node_service_brief)
     g.add_node("mvp_scope", node_mvp_scope)
     g.add_node("user_flow", node_user_flow)
     g.add_node("build_plan", node_build_plan)
     g.add_node("qa_plan", node_qa_plan)
     g.add_node("gate2", node_gate2)
+    # Step 4
+    g.add_node("data_schema", node_data_schema)
+    g.add_node("state_machine", node_state_machine)
+    g.add_node("prompt_spec", node_prompt_spec)
+    g.add_node("interface_spec", node_interface_spec)
+    g.add_node("gate3", node_gate3)
 
     g.add_edge(START, "constitution")
     g.add_edge("constitution", "gate1")
 
-    # Gate 1 분기 — 라우터가 verdict 값을 노드명으로 매핑
+    # Gate 1 분기
     g.add_conditional_edges(
         "gate1",
         route_after_gate1,
@@ -286,13 +403,28 @@ def build_harness_graph() -> Any:
     g.add_edge("build_plan", "qa_plan")
     g.add_edge("qa_plan", "gate2")
 
-    # Gate 2 분기 — 라우터가 verdict 값을 노드명으로 매핑
+    # Gate 2 분기 — PASS → Step 4, FAIL → 5종 재작성
     g.add_conditional_edges(
         "gate2",
         route_after_gate2,
         {
             "service_brief": "service_brief",
-            "__end__":       END,
+            "data_schema":   "data_schema",
+        },
+    )
+
+    g.add_edge("data_schema", "state_machine")
+    g.add_edge("state_machine", "prompt_spec")
+    g.add_edge("prompt_spec", "interface_spec")
+    g.add_edge("interface_spec", "gate3")
+
+    # Gate 3 분기 — PASS → END, FAIL → 4종 재작성
+    g.add_conditional_edges(
+        "gate3",
+        route_after_gate3,
+        {
+            "data_schema": "data_schema",
+            "__end__":     END,
         },
     )
 
