@@ -247,7 +247,6 @@ def run_gate2(
 
     재시도/조건부 통과 분기는 LangGraph conditional_edges (Phase B) 가 책임.
     """
-    print("[Gate 2] Team Lead + Edu + Tech 다중 검증")
     r1 = _judge_round(harness_input, constitution_md, artifacts)
     final = (
         GateResult.PASS_ if r1.final_verdict == "pass" else GateResult.FAIL
