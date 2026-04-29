@@ -132,7 +132,7 @@ def _team_lead_judge(
         system=TEAMLEAD_GATE1_SYSTEM,
         user=user_msg,
         label="gate1-team_lead",
-        max_tokens=1500,
+        max_tokens=2500,
     )
     # 안전망: LLM 이 가끔 feedback_memo 를 checks 안에 넣음 (Gate 2 에서도 발생했던 패턴)
     checks = raw.get("checks") or {}

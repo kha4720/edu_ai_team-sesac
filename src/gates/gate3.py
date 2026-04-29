@@ -133,7 +133,7 @@ def _team_lead_judge(
         system=TEAMLEAD_GATE3_SYSTEM,
         user=user_msg,
         label="gate3-team_lead",
-        max_tokens=1500,
+        max_tokens=2500,
     )
     checks = raw.get("checks") or {}
     raw["checks"] = {k: v for k, v in checks.items() if isinstance(v, dict)}
