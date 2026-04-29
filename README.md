@@ -2,6 +2,15 @@
 
 SeSAC AI 팀 코드 공유 레포지토리입니다.
 
+```
+## 브랜치 구조
+main   ← 안정 버전 (직접 push 금지)
+ └── dev   ← 통합 브랜치
+      └── hyeona   ← Track 1 담당, 기획 
+      └── (이름)   ← Track 1 담당, 고도화
+      └── yumin    ← Track 2 담당, 구현 자동화
+```
+
 ---
 
 ## 프로젝트 구조
@@ -78,15 +87,6 @@ cp .env.example .env
 .venv/bin/python -m streamlit run app.py
 ---
 
-## 브랜치 구조
-
-```
-main   ← 안정 버전 (직접 push 금지)
- └── dev   ← 통합 브랜치
-      └── hyeona   ← Track 1 담당, 기획 
-      └── (이름)   ← Track 1 담당, 고도화
-      └── yumin    ← Track 2 담당, 구현 자동화
-```
 
 ---
 
