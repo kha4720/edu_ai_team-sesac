@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -190,14 +191,14 @@ def run_gate1(
 
     재시도/조건부 통과 분기는 LangGraph conditional_edges (Phase B) 가 책임.
     """
-    print("[Gate 1] Orchestrator 직접 검증")
-    orch = _orchestrator_judge(harness_input, constitution.markdown)
-
-    print("[Gate 1] PM Agent review")
-    pm = pm_review_gate1(harness_input, constitution.markdown)
-
-    print("[Gate 1] Tech Agent review")
-    tech = tech_review_gate1(harness_input, constitution.markdown)
+    print("[Gate 1] Orchestrator + PM + Tech 병렬 검증 시작")
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        f_orch = pool.submit(_orchestrator_judge, harness_input, constitution.markdown)
+        f_pm = pool.submit(pm_review_gate1, harness_input, constitution.markdown)
+        f_tech = pool.submit(tech_review_gate1, harness_input, constitution.markdown)
+        orch = f_orch.result()
+        pm = f_pm.result()
+        tech = f_tech.result()
 
     round_result = _aggregate_round(orch, pm, tech)
 
