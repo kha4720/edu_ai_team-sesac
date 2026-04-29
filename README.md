@@ -103,7 +103,7 @@ project/
 ├── src/
 │   ├── graph.py        ← LangGraph 워크플로우 정의
 │   ├── runner.py       ← 파이프라인 진입점
-│   ├── agents/         ← Edu / PM / Tech / Prompt 에이전트
+│   ├── agents/         ← Team Lead / Edu / PM / Tech / Prompt 에이전트
 │   ├── schemas/        ← Pydantic 스키마 (입력 / 워크플로우 / 산출물)
 │   ├── prompts/        ← 각 에이전트 · Gate 시스템 프롬프트
 │   ├── gates/          ← Gate 1 · 2 · 3 검증 함수
