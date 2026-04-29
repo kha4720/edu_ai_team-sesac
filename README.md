@@ -47,6 +47,21 @@
 각 Gate 는 FAIL 시 작성 노드로 되돌아가는 LangGraph `conditional_edges` 로 구현.
 2회차도 FAIL 이면 `CONDITIONAL_PASS` 로 덮어쓰고 `risk_memo` 를 남긴 뒤 진행.
 
+## 산출물 목록
+
+| 단계 | 파일 | 내용 |
+|------|------|------|
+| Step 2 | `constitution.md` | 교육 설계 헌법 (학습 목표 · 루브릭 · 플로우 원칙) |
+| Step 3 | `service_brief.md` | 서비스 1장 요약 |
+| | `mvp_scope.md` | 구현 범위 · 제외 기능 |
+| | `user_flow.md` | 화면 흐름 · 전환 조건 |
+| | `build_plan.md` | 개발 계획 · 모듈 구조 |
+| | `qa_plan.md` | 테스트 시나리오 · 성공 기준 |
+| Step 4 | `data_schema.json` | 입출력 필드 규격 |
+| | `state_machine.md` | 상태 전이 · mode 매핑 |
+| | `prompt_spec.md` | LLM 시스템 프롬프트 설계서 |
+| | `interface_spec.md` | API · UI · 모듈 계약서 |
+
 ## 검증 케이스
 
 기획서 4.1 의 **"중학생 질문력 향상 챗봇"** 을 기본 검증 케이스로 사용 (`inputs/question_coach.json`).
