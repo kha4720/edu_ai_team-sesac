@@ -231,7 +231,7 @@ if run_button:
 if not run_button and st.session_state.pipeline_result is None:
     progress_slot.info(
         "위 입력값을 확인하고 **🚀 하네스 실행** 버튼을 누르세요. "
-        "처음 실행 시 약 2~3분 소요됩니다 (LLM 호출 약 17~20회). "
+        "처음 실행 시 약 2–3분 소요됩니다 (LLM 호출 약 17–20회). "
         "산출물이 한 단계씩 완성될 때마다 아래 박스에 즉시 표시됩니다."
     )
 
