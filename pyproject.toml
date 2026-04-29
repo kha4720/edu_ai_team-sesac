@@ -1,0 +1,25 @@
+[project]
+name = "synnex-agent-team"
+version = "0.1.0"
+description = "Education-service implementation agent team skeleton with sequential LLM pipeline and Streamlit MVP demo."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2,<3",
+    "streamlit>=1.40,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8,<9",
+]
+
+[project.scripts]
+synnex-agent-team = "main:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["agents*", "schemas*", "clients*", "orchestrator*", "loaders*", "validators*"]

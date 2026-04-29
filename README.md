@@ -1,92 +1,175 @@
-# edu_ai_team (SeSAC)
+# 교육 서비스 구현 전문 AI Agent Team Skeleton
 
-SeSAC AI 팀 코드 공유 레포지토리입니다.
+이 저장소는 교육 서비스 구현 명세서를 입력받아 **교육 콘텐츠**, **Streamlit MVP 코드**, **실행 로그**, **QA 결과**를 생성하는 **교육 서비스 구현 전문 AI Agent 팀**의 실행 골격을 구현하기 위한 저장소다.
 
----
+기준 문서는 [docs/project_context.md](docs/project_context.md)다. 현재 active 구조는 6-Agent 구현팀 기준이며, 기존 질문력 기획용 skeleton은 legacy reference로 남겨 둔다.
 
-## 프로젝트 구조
+## 현재 검증 사례
 
-이 팀 프로젝트는 두 개의 트랙으로 구성됩니다.
+현재 첫 검증 사례는 **질문력 향상 퀴즈 서비스 MVP**다.
 
-### [Track 1] Edu Design Harness — 기획 자동화
+- 구현팀 정체성은 범용 교육 서비스 구현팀으로 유지한다.
+- 기본 입력은 [inputs/quiz_service_spec.md](inputs/quiz_service_spec.md)다.
+- 이번 MVP acceptance는 `4개 퀴즈 유형 × 각 2문제 = 총 8문제`다.
 
-교육 서비스 기획자가 아이디어와 실행 제약을 입력하면, 5개의 LLM 에이전트(Orchestrator / Edu / PM / Tech / Prompt)가 협업해 **헌법 1종 + 기획문서 5종 + 구현명세 4종**을 자동 생성하는 멀티에이전트 하네스.
+## 6-Agent 구조
 
-**기술 스택**: Python 3.11+ / Upstage Solar API / Pydantic v2 / LangGraph / uv
+1. `Spec Intake Agent / 구현 명세서 분석 Agent`
+2. `Requirement Mapping Agent / 구현 요구사항 정리 Agent`
+3. `Content & Interaction Agent / 교육 콘텐츠·상호작용 생성 Agent`
+4. `Prototype Builder Agent / MVP 서비스 코드 생성 Agent`
+5. `Run Test And Fix Agent / 실행·테스트·수정 Agent`
+6. `QA & Alignment Agent / 최종 검수·정합성 확인 Agent`
 
-**담당 브랜치**: `hyeona`
+## 전체 실행 흐름
 
----
+1. Markdown 구현 명세서를 읽는다.
+2. 구현 명세서 분석 Agent가 명세를 구조화한다.
+3. 구현 요구사항 정리 Agent가 구현 계약과 파일 계획을 만든다.
+4. 교육 콘텐츠·상호작용 생성 Agent가 퀴즈 콘텐츠를 만든다.
+5. MVP 서비스 코드 생성 Agent가 Streamlit `app.py`를 만든다.
+6. 실행·테스트·수정 Agent가 compile/smoke test 결과를 남긴다.
+7. 최종 검수·정합성 확인 Agent가 QA 리포트와 변경 로그를 만든다.
 
-### [Track 2] 구현 자동화
+## 주요 경로
 
-Track 1에서 산출된 구현명세서 4종을 입력으로 받아, 실제 서비스 코드를 자동 생성하는 파이프라인.
-
-*(상세 내용은 해당 담당자 브랜치 참고)*
-
----
-
-## 브랜치 구조
-
+```text
+.
+├── inputs/                    # 원본 구현 명세서
+├── clients/                   # 환경변수 기반 LLM client
+├── agents/implementation/     # 6개 구현 Agent
+├── schemas/implementation/    # 구현팀 input/output schema
+├── prompts/implementation/    # Agent별 prompt
+├── orchestrator/              # 순차 실행 파이프라인
+├── outputs/                   # 산출물, 실행 로그, QA 결과
+├── main.py                    # active orchestrator entrypoint
+└── app.py                     # 서비스별 *_contents.json 기반 Streamlit MVP
 ```
-main   ← 안정 버전 (직접 push 금지)
- └── dev   ← 통합 브랜치
-      └── hyeona   ← Track 1 담당, 기획 
-      └── (이름)   ← Track 1 담당, 고도화
-      └── (이름)   ← Track 2 담당 팀원 브랜치
-```
 
----
-
-## 팀원 브랜치 세팅 방법
-
-### 1. 레포지토리 클론
+## 설치 방법
 
 ```bash
-git clone https://github.com/kha4720/edu_ai_team-sesac.git
-cd edu_ai_team-sesac
+python3 -m venv .venv
+.venv/bin/python -m pip install -e .[dev]
 ```
 
-### 2. 내 이름 브랜치로 이동
+## `.env` 사용
+
+실제 키는 `.env`에 두는 편이 좋다. 저장소에는 [.env.example](.env.example)만 추적하고, `.env`는 `.gitignore`로 제외한다.
 
 ```bash
-# 처음 세팅하는 경우 (dev 기준으로 생성)
-git checkout -b 이름 origin/dev
-
-# 이미 생성된 브랜치가 있는 경우
-git checkout 이름
-```
-
-### 3. 작업 후 내 브랜치에 push
-
-```bash
-git add .
-git commit -m "작업 내용 요약"
-git push origin 이름
-```
-
-> **주의**: `main` / `dev` 브랜치에는 직접 push하지 말아주세요.
-
----
-
-## (Track 1) UI 데모 실행 (`hyeona` 브랜치)
-
-```bash
-# hyeona 브랜치로 이동
-git checkout hyeona
-
-# 의존성 설치
-uv sync
-
-# .env 파일에 API 키 설정
 cp .env.example .env
-# UPSTAGE_API_KEY 값 입력 후 저장
-
-# 데모 실행
-uv run streamlit run app.py
 ```
 
-브라우저에서 `http://localhost:8501` 로 접속하면 UI가 열립니다.
+## 환경변수
 
-서비스 기획 정보와 실행 제약을 입력한 뒤 **🚀 하네스 실행** 버튼을 누르면
-LLM 에이전트들이 순차적으로 문서를 생성합니다 (최초 실행 시 약 1~2분 소요).
+runtime 실행은 OpenAI-compatible LLM client를 사용한다.
+
+### Upstage Solar Pro2 예시
+
+기본 권장 설정은 Upstage다. `UPSTAGE_API_KEY`가 있으면 client가 Upstage 경로를 우선 사용한다.
+
+```bash
+export UPSTAGE_API_KEY="..."
+export UPSTAGE_MODEL="solar-pro2"
+export UPSTAGE_BASE_URL="https://api.upstage.ai/v1"  # optional
+```
+
+`UPSTAGE_MODEL`을 생략하면 기본값으로 `solar-pro2`를 사용한다. 계정에서 다른 모델 slug를 써야 하면 그 값을 그대로 넣으면 된다.
+`main.py`는 실행 시 루트의 `.env` 파일이 있으면 자동으로 읽는다.
+
+### 일반 OpenAI-compatible 예시
+
+```bash
+export OPENAI_API_KEY="..."
+export OPENAI_MODEL="..."
+export OPENAI_BASE_URL="https://api.openai.com/v1"  # optional
+```
+
+## 파이프라인 실행 방법
+
+```bash
+.venv/bin/python main.py
+```
+
+옵션 예시:
+
+```bash
+.venv/bin/python main.py --input-path inputs/quiz_service_spec.md --output-dir outputs
+```
+
+`target_framework`의 기본값은 `streamlit`이다. 현재 Prototype Builder가 실제로
+생성하는 앱은 Streamlit `app.py`뿐이며, `react`, `fastapi`, `nextjs` 같은 값은
+명확한 unsupported 결과와 로그를 남기고 local checks 전에 중단한다.
+
+## Outputs 확인 방법
+
+실행이 끝나면 `outputs/` 아래에 아래 파일이 생성된다.
+이들 중 실행 산출물은 기본적으로 재생성 가능하므로 저장소에는 커밋하지 않는다.
+
+- `spec_intake_output.json`
+- `requirement_mapping_output.json`
+- `question_quest_contents.json`
+- `prototype_builder_output.json`
+- `run_test_and_fix_output.json`
+- `qa_alignment_output.json`
+- `execution_log.txt`
+- `qa_report.md`
+- `change_log.md`
+- `final_summary.md`
+
+현재 검증 시나리오에서 `app.py`가 읽는 콘텐츠 파일은 `question_quest_contents.json`이다.
+이 파일의 현재 계약은 다음과 같다.
+
+- `quiz_type`: 상호작용 유형
+  - `더 좋은 질문 고르기`
+  - `질문에서 빠진 요소 찾기`
+  - `모호한 질문 고치기`
+  - `상황에 맞는 질문 만들기`
+- `learning_dimension`: 학습 차원
+  - `구체성`
+  - `맥락성`
+  - `목적성`
+  - `종합성`
+
+## Streamlit MVP 실행 방법
+
+`app.py`는 `outputs/question_quest_contents.json`을 우선 읽는 최소 퀴즈 MVP다.
+
+먼저 파이프라인으로 콘텐츠를 생성한 뒤 실행한다.
+
+```bash
+.venv/bin/python -m streamlit run app.py
+```
+
+화면에서 확인할 수 있는 핵심 흐름은 다음과 같다.
+
+1. 생성된 8개 문제 확인
+2. 객관식 답안 선택
+3. 채점 결과 확인
+4. 정답, 해설, 학습 포인트 확인
+
+## 테스트
+
+자동 테스트는 실제 LLM API를 호출하지 않는다.
+`tests/` 아래 fake/mock LLM client를 사용해 deterministic하게 검증한다.
+
+```bash
+.venv/bin/python -m pytest
+```
+
+## 안정성 메모
+
+현재 MVP 안정성을 위해 `Prototype Builder Agent / MVP 서비스 코드 생성 Agent`와
+`QA & Alignment Agent / 최종 검수·정합성 확인 Agent`는 deterministic한 후처리 방식을 사용한다.
+즉, 콘텐츠 생성은 live LLM으로 검증하되, `app.py` 템플릿 정규화와 QA summary는 검증된 계약을 우선 적용한다.
+
+이 선택은 Streamlit MVP와 outputs 구조를 안정적으로 재현하기 위한 것이며,
+후속 이슈에서는 builder/QA 단계까지 live generation 범위를 다시 확장할 수 있다.
+
+## 구현 결정 기록
+
+구현 중 기존 설계와 달라지는 판단은 아래에 기록한다.
+
+- [docs/implementation_decisions.md](docs/implementation_decisions.md)
+- `outputs/change_log.md`
