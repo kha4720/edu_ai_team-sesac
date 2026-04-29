@@ -119,6 +119,10 @@ run_button = st.button("🚀 하네스 실행", type="primary", use_container_wi
 # ============================================================
 
 
+# 실행 결과를 rerun 이후에도 유지 (download_button 클릭 시 rerun 대응)
+if "pipeline_result" not in st.session_state:
+    st.session_state.pipeline_result = None
+
 # 진행 상황 박스 자리
 progress_slot = st.empty()
 
@@ -147,6 +151,22 @@ for tab, (artifact_id, label, owner) in zip(tabs, ARTIFACT_VIEW):
         st.caption(f"작성자: **{owner}**")
         artifact_slots[artifact_id] = st.empty()
         artifact_slots[artifact_id].info("⏳ 실행 후 여기에 결과가 표시됩니다.")
+
+# rerun 시 (download_button 클릭 등) 이전 결과 복원
+_stored = st.session_state.pipeline_result
+if _stored is not None:
+    for _aid, _path in _stored.artifact_paths.items():
+        _slot = artifact_slots.get(_aid)
+        if _slot and _path.exists():
+            _slot.markdown(_path.read_text(encoding="utf-8"))
+    for _key, _fn in [
+        ("gate1_log", _stored.gate1.to_log_markdown),
+        ("gate2_log", _stored.gate2.to_log_markdown),
+        ("gate3_log", _stored.gate3.to_log_markdown),
+    ]:
+        _slot = artifact_slots.get(_key)
+        if _slot:
+            _slot.markdown(_fn())
 
 
 # ============================================================
@@ -201,23 +221,32 @@ if run_button:
             on_progress=on_progress,
             on_artifact=on_artifact,
         )
+        st.session_state.pipeline_result = result
         progress_box.update(label="완료 ✅", state="complete")
     except Exception as e:
         progress_box.update(label="실패 ❌", state="error")
         st.error(f"실행 중 오류: {type(e).__name__}: {e}")
         st.stop()
 
-    # 완료 후 Gate 결과 metric + 다운로드 버튼 추가
-    st.success(f"✅ 완료 — `{result.output_dir}`")
-    g1 = result.gate1.final_verdict.value
-    g2 = result.gate2.final_verdict.value
-    g3 = result.gate3.final_verdict.value
+if not run_button and st.session_state.pipeline_result is None:
+    progress_slot.info(
+        "위 입력값을 확인하고 **🚀 하네스 실행** 버튼을 누르세요. "
+        "처음 실행 시 약 2~3분 소요됩니다 (LLM 호출 약 17~20회). "
+        "산출물이 한 단계씩 완성될 때마다 아래 박스에 즉시 표시됩니다."
+    )
+
+# Gate 결과 metric + 다운로드 — session_state 기준으로 렌더링 (rerun 후에도 유지)
+_result = st.session_state.pipeline_result
+if _result is not None:
+    st.success(f"✅ 완료 — `{_result.output_dir}`")
+    g1 = _result.gate1.final_verdict.value
+    g2 = _result.gate2.final_verdict.value
+    g3 = _result.gate3.final_verdict.value
     cols = st.columns(3)
     cols[0].metric("Gate 1 (헌법 검증)", g1)
     cols[1].metric("Gate 2 (기획문서 5종)", g2)
     cols[2].metric("Gate 3 (구현 명세서 4종)", g3)
 
-    # 다운로드 버튼 묶음
     st.markdown("### 📥 산출물 다운로드")
     dl_cols = st.columns(5)
     download_specs = [
@@ -228,7 +257,7 @@ if run_button:
         ("build_plan",    "build_plan.md",    "text/markdown"),
     ]
     for col, (artifact_id, fname, mime) in zip(dl_cols, download_specs):
-        path = result.artifact_paths[artifact_id]
+        path = _result.artifact_paths[artifact_id]
         col.download_button(fname, data=path.read_text(encoding="utf-8"), file_name=fname, mime=mime)
 
     dl_cols2 = st.columns(5)
@@ -240,19 +269,13 @@ if run_button:
         ("interface_spec", "interface_spec.md", "text/markdown"),
     ]
     for col, (artifact_id, fname, mime) in zip(dl_cols2, download_specs2):
-        path = result.artifact_paths[artifact_id]
+        path = _result.artifact_paths[artifact_id]
         col.download_button(fname, data=path.read_text(encoding="utf-8"), file_name=fname, mime=mime)
 
-    if result.workflow_log_path and result.workflow_log_path.exists():
+    if _result.workflow_log_path and _result.workflow_log_path.exists():
         st.download_button(
             "📊 워크플로우 로그 (전체)",
-            data=result.workflow_log_path.read_text(encoding="utf-8"),
+            data=_result.workflow_log_path.read_text(encoding="utf-8"),
             file_name="_workflow_log.md",
             mime="text/markdown",
         )
-else:
-    progress_slot.info(
-        "위 입력값을 확인하고 **🚀 하네스 실행** 버튼을 누르세요. "
-        "처음 실행 시 약 1~2분 소요됩니다 (LLM 호출 약 12~15회). "
-        "산출물이 한 단계씩 완성될 때마다 아래 박스에 즉시 표시됩니다."
-    )
