@@ -19,7 +19,7 @@ main   ← 안정 버전 (직접 push 금지)
 
 ### [Track 1] Edu Design Harness — 기획 자동화
 
-교육 서비스 기획자가 아이디어와 실행 제약을 입력하면, 5개의 LLM 에이전트(Orchestrator / Edu / PM / Tech / Prompt)가 협업해 **교수 설계서(헌법) 1종 + 기획문서 5종 + 구현명세 4종**을 자동 생성하는 멀티에이전트 하네스.
+교육 서비스 기획자가 아이디어와 실행 제약을 입력하면, 5개의 LLM 에이전트(Team Lead / Edu / PM / Tech / Prompt)가 협업해 **교수 설계서(헌법) 1종 + 기획문서 5종 + 구현명세 4종**을 자동 생성하는 멀티에이전트 하네스.
 
 **기술 스택**: Python 3.11+ / Upstage Solar API / Pydantic v2 / LangGraph / uv
 
