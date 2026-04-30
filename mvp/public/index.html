@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Question Coach MVP</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 600px;
+      width: 100%;
+      padding: 40px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    .screen-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .checkbox-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+    }
+
+    .checkbox-item input {
+      width: auto;
+      margin-right: 8px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 30px;
+      justify-content: flex-end;
+    }
+
+    button {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .feedback {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .feedback.success {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border-left: 4px solid #4caf50;
+    }
+
+    .feedback.warning {
+      background: #fff3e0;
+      color: #e65100;
+      border-left: 4px solid #ff9800;
+    }
+
+    .feedback.error {
+      background: #ffebee;
+      color: #c62828;
+      border-left: 4px solid #f44336;
+    }
+
+    .progress-bar {
+      height: 4px;
+      background: #f0f0f0;
+      border-radius: 2px;
+      margin-bottom: 30px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #667eea;
+      transition: width 0.3s;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    .badge.excellent {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+
+    .badge.good {
+      background: #f3e5f5;
+      color: #6a1b9a;
+    }
+
+    .badge.poor {
+      background: #fce4ec;
+      color: #c2185b;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f0f0f0;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎯 Question Coach</h1>
+      <p>AI와 함께 배우기 좋은 질문을 만드세요</p>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <!-- Screen 1.0: Start -->
+    <div id="screen-start" class="screen active">
+      <div class="screen-title">시작하기</div>
+      <p style="color: #666; margin-bottom: 20px;">AI와 함께 좋은 질문을 만들어보세요. 주제를 선택하고 5W1H를 활용해 명확한 질문을 구성해 봅시다.</p>
+      <div class="button-group">
+        <button class="btn-primary" id="btn-start">질문 생성 시작</button>
+      </div>
+    </div>
+
+    <!-- Screen 2.0: Subject Selection -->
+    <div id="screen-subject" class="screen">
+      <div class="screen-title">2단계: 주제 선정</div>
+      <div class="form-group">
+        <label>학습 과목</label>
+        <select id="subject-select">
+          <option value="">선택해주세요</option>
+          <option value="korean">국어</option>
+          <option value="math">수학</option>
+          <option value="science">과학</option>
+          <option value="english">영어</option>
+          <option value="social">사회</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>구체적인 주제</label>
+        <input type="text" id="topic-input" placeholder="예: 삼각함수의 기본 개념">
+      </div>
+      <div class="feedback" id="feedback-subject" style="display: none;"></div>
+      <div class="button-group">
+        <button class="btn-secondary" onclick="app.goToScreen('start')">돌아가기</button>
+        <button class="btn-primary" id="btn-next-subject">다음</button>
+      </div>
+    </div>
+
+    <!-- Screen 3.0: 5W1H Input -->
+    <div id="screen-5w1h" class="screen">
+      <div class="screen-title">3단계: 5W1H 요소 확인</div>
+      <p style="color: #666; margin-bottom: 20px; font-size: 13px;">3개 이상의 항목을 입력해주세요.</p>
+
+      <div class="form-group">
+        <label>When (언제?)</label>
+        <input type="text" id="when-input" placeholder="예: 시험 3일 전에">
+      </div>
+      <div class="form-group">
+        <label>Where (어디서?)</label>
+        <input type="text" id="where-input" placeholder="예: 도서관에서">
+      </div>
+      <div class="form-group">
+        <label>Who (누가?)</label>
+        <input type="text" id="who-input" placeholder="예: 고등학생이">
+      </div>
+      <div class="form-group">
+        <label>What (무엇을?)</label>
+        <input type="text" id="what-input" placeholder="예: 생물 세포 구조를">
+      </div>
+      <div class="form-group">
+        <label>Why (왜?)</label>
+        <input type="text" id="why-input" placeholder="예: 이해하고 싶은가?">
+      </div>
+
+      <div class="feedback" id="feedback-5w1h" style="display: none;"></div>
+      <div class="button-group">
+        <button class="btn-secondary" onclick="app.goToScreen('subject')">돌아가기</button>
+        <button class="btn-primary" id="btn-next-5w1h">다음 (질문 생성)</button>
+      </div>
+    </div>
+
+    <!-- Screen 4.0: Question Draft -->
+    <div id="screen-draft" class="screen">
+      <div class="screen-title">4단계: 문장 완성</div>
+      <p style="color: #666; margin-bottom: 20px; font-size: 13px;">AI가 생성한 질문을 확인하고 필요시 수정하세요.</p>
+
+      <div class="form-group">
+        <label>생성된 질문</label>
+        <textarea id="question-textarea" placeholder="질문이 여기에 표시됩니다..."></textarea>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-secondary" onclick="app.goToScreen('5w1h')">돌아가기</button>
+        <button class="btn-primary" id="btn-next-draft">학습 목적 확인</button>
+      </div>
+    </div>
+
+    <!-- Screen 5.0: Purpose Confirmation -->
+    <div id="screen-purpose" class="screen">
+      <div class="screen-title">5단계: 학습 목적 확인</div>
+      <p style="color: #666; margin-bottom: 20px; font-size: 13px;">이 질문으로 무엇을 알고 싶은지 작성해주세요.</p>
+
+      <div class="form-group">
+        <label>학습 목적</label>
+        <textarea id="purpose-textarea" placeholder="예: 세포 구조의 각 부분이 하는 역할을 이해하고 싶어요"></textarea>
+      </div>
+
+      <div class="feedback" id="feedback-purpose" style="display: none;"></div>
+      <div class="button-group">
+        <button class="btn-secondary" onclick="app.goToScreen('draft')">돌아가기</button>
+        <button class="btn-primary" id="btn-submit">질문 제출</button>
+      </div>
+    </div>
+
+    <!-- Screen 6.0: Feedback -->
+    <div id="screen-feedback" class="screen">
+      <div class="screen-title">평가 결과</div>
+
+      <div id="feedback-result" style="margin-bottom: 20px;"></div>
+
+      <div class="feedback" id="feedback-message" style="margin-bottom: 20px;"></div>
+
+      <div class="button-group">
+        <button class="btn-secondary" onclick="app.goToScreen('start')">처음부터 시작</button>
+        <button class="btn-primary" id="btn-retry">다시 시도</button>
+        <button class="btn-primary" id="btn-submit-to-ai">AI에 질문 전송</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../config.example.js"></script>
+  <script src="../src/session-manager.js"></script>
+  <script src="../src/state-machine.js"></script>
+  <script src="../src/llm-service.js"></script>
+  <script src="../src/ui-manager.js"></script>
+  <script src="../src/app.js"></script>
+</body>
+</html>

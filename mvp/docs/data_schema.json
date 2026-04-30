@@ -1,0 +1,60 @@
+{
+  "input": {
+    "step1_subject": {
+      "type": "string",
+      "required": true,
+      "description": "학습 과목/주제 (드롭다운 선택값)",
+      "example": "과학 - 생물 세포 구조",
+      "source": "User Flow 화면 2.0 주제 선정 단계"
+    },
+    "step2_5w1h": {
+      "type": "object",
+      "required": true,
+      "description": "5W1H 요소 입력값 (When, Where, Who, What, Why)",
+      "example": {
+        "When": "과학 시험 3일 전",
+        "What": "세포 구조 암기",
+        "Why": "시험 점수 향상"
+      },
+      "source": "User Flow 화면 3.0 5W1H 요소 확인 단계"
+    },
+    "step3_learning_purpose": {
+      "type": "string",
+      "required": true,
+      "description": "학습 목적 확인 질문 답변",
+      "example": "세포 구조를 그림으로 암기하려고",
+      "source": "User Flow 화면 5.0 학습 목적 확인 단계"
+    }
+  },
+  "output": {
+    "generated_question": {
+      "type": "string",
+      "required": true,
+      "description": "LLM이 생성한 질문 문장",
+      "example": "과학 시험 3일 전에 생물 세포 구조를 암기하려면 어떤 방법이 효과적일까?",
+      "source": "Build Plan A. LLM 기반 질문 문장 생성"
+    },
+    "feedback_message": {
+      "type": "string",
+      "required": true,
+      "description": "루브릭 평가 결과 피드백 메시지",
+      "example": "질문이 명확하고 학습 목표와 연결됩니다! AI에 바로 질문해 보세요.",
+      "source": "헌법 ⑦ 루브릭 기반 서비스 플로우 원칙"
+    },
+    "mode": {
+      "type": "string",
+      "required": true,
+      "description": "시스템 판단 결과 — 헌법 ⑦ 루브릭 기반 분기값",
+      "example": "양호",
+      "enum": ["우수", "양호", "미흡", "재도전"],
+      "source": "헌법 ⑦ 루브릭 기반 서비스 플로우 원칙"
+    },
+    "required_retry_fields": {
+      "type": "array",
+      "required": false,
+      "description": "재시도 시 필요한 입력 필드 목록",
+      "example": ["Why"],
+      "source": "헌법 ⑦ 루브릭 기반 서비스 플로우 원칙"
+    }
+  }
+}
