@@ -57,8 +57,8 @@ class ExecutionConstraints(BaseModel):
     )
     existing_assets: str | None = Field(
         default=None,
-        description="이미 보유한 문서·기능 정의·코드 등 자산 (선택)",
-        examples=["기획 문서 초안 있음 / 기능 정의 문서 있음 / 코드베이스 없음"],
+        description="이미 보유한 문서·기능 정의·코드 등 자산 (선택). LLM API 제약도 여기에 포함 (예: Upstage Solar-pro2 사용)",
+        examples=["기획 문서 초안 있음 / 기능 정의 문서 있음 / 코드베이스 없음 / Upstage Solar-pro2 사용"],
     )
 
 
