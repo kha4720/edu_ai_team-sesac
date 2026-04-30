@@ -35,7 +35,7 @@ st.title("📚 AI 기반 교육 서비스 기획 하네스")
 st.caption(
     "LLM API를 활용하는 AI 교육 서비스 기획에 특화된 하네스. "
     "4개 LLM 에이전트(Edu / PM / Tech / Prompt) + Team Lead 가 "
-    "협업하여 헌법 + 기획문서 5종 + 구현 명세서 4종을 자동 생성합니다."
+    "협업하여 서비스 원칙서 + 기획문서 5종 + 구현 명세서 4종을 자동 생성합니다."
 )
 
 
@@ -129,7 +129,7 @@ progress_slot = st.empty()
 
 # 산출물 탭 정의 — (artifact_id, 탭 라벨, 작성자)
 ARTIFACT_VIEW = [
-    ("constitution",   "📜 헌법",            "Edu Agent"),
+    ("constitution",   "📜 서비스 원칙서",    "Edu Agent"),
     ("gate1_log",      "🛡️ Gate 1",          "Team Lead"),
     ("service_brief",  "📝 Service Brief",   "PM Agent"),
     ("mvp_scope",      "🎯 MVP Scope",       "PM Agent"),
@@ -244,13 +244,13 @@ if _result is not None:
     g2 = _result.gate2.final_verdict.value
     g3 = _result.gate3.final_verdict.value
     cols = st.columns(3)
-    cols[0].metric("Gate 1 (헌법 검증)", g1)
+    cols[0].metric("Gate 1 (원칙서 검증)", g1)
     cols[1].metric("Gate 2 (기획문서 5종)", g2)
     cols[2].metric("Gate 3 (구현 명세서 4종)", g3)
 
     if _result.step_timings:
         _STEP_LABELS = {
-            "constitution":   "헌법 (Edu Agent)",
+            "constitution":   "서비스 원칙서 (Edu Agent)",
             "gate1":          "Gate 1",
             "service_brief":  "Service Brief (PM)",
             "mvp_scope":      "MVP Scope (PM)",
