@@ -1,12 +1,7 @@
-"""Streamlit 데모 UI — 교육 서비스 기획 문서 하네스.
+"""Streamlit UI — 교육 서비스 기획 문서 하네스.
 
 실행:
     uv run streamlit run app.py
-
-레이아웃:
-- 메인 상단: 입력 영역을 2단(서비스 기획 정보 / 실행 제약 정보) 으로 배치 (사이드바 X).
-- 입력 아래: 산출물 placeholder 7개 (헌법 + 5종 + 워크플로우 로그) 미리 펼쳐 보임.
-- 실행 시 단계마다 해당 placeholder 에 결과 markdown 이 즉시 채워짐.
 """
 
 from __future__ import annotations
