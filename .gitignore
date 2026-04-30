@@ -21,6 +21,10 @@ wheels/
 .DS_Store
 Thumbs.db
 
+# Node.js
+node_modules/
+package-lock.json
+
 # Outputs (실행 결과는 git 추적 X)
 outputs/
 

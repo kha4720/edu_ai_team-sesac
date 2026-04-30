@@ -17,6 +17,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/src', express.static(path.join(__dirname, 'src')));
 
 // 환경 변수
 const UPSTAGE_API_KEY = process.env.UPSTAGE_API_KEY;
