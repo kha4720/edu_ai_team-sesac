@@ -100,8 +100,8 @@ with col_constraint:
     )
     existing_assets = st.text_area(
         "보유 자산 (선택)",
-        value="기획 문서 초안 있음 / 기능 정의 문서 있음 / 코드베이스 없음",
-        help="이미 보유한 문서·기능 정의·코드 등 자산",
+        value="기획 문서 초안 있음 / 기능 정의 문서 있음 / 코드베이스 없음 / Upstage Solar-pro2 사용",
+        help="이미 보유한 문서·기능 정의·코드 등 자산. LLM API 제약도 여기에 포함",
         height=INPUT_HEIGHT,
     )
     project_slug = st.text_input(
