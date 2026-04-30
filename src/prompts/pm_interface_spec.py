@@ -16,7 +16,10 @@ INTERFACE_SPEC_INSTRUCTION = """**Interface Spec** 을 작성한다.
 - [Primary Inputs] 의 Data Schema 필드를 **그대로** API 요청·응답 바디에 사용한다.
   (필드명·타입을 임의로 변경하지 않는다.)
 - [Secondary Inputs] 의 State Machine 의 mode 값별 응답 형태를 UI 렌더링 규칙으로 명시한다.
-- [Secondary Inputs] 의 Build Plan 의 모듈을 API 엔드포인트와 연결한다.
+- [Secondary Inputs] 의 Build Plan 의 **기술 방식(Backend 존재 여부, 통신 방식)을 반드시 따른다**.
+  - Backend 가 없는 경우: `/api/...` 형태의 서버 엔드포인트 대신 프론트엔드 함수 인터페이스로 정의한다.
+  - Backend 가 있는 경우: REST API 엔드포인트로 정의한다.
+- [Secondary Inputs] 의 Build Plan 의 모듈을 인터페이스와 연결한다.
 - 에러 처리 (입력 검증 실패 / 서버 오류 / 타임아웃) 를 포함한다.
 
 ## 작성 형식 (정확히 이 머리말 4개를 모두 사용)

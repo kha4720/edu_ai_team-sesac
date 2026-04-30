@@ -123,10 +123,12 @@ class Gate3Result:
 def _team_lead_judge(
     constitution_md: str,
     impl_specs: dict[str, str],
+    reference_docs: dict[str, str] | None = None,
 ) -> Gate3TeamLeadVerdict:
     ctx = PromptContext(
         global_blocks={"헌법 (Constitution)": constitution_md},
         primary_blocks=impl_specs,
+        secondary_blocks=reference_docs or {},
     )
     user_msg = build_user_prompt(context=ctx, instruction=GATE3_INSTRUCTION)
     raw = chat_json(
@@ -186,14 +188,16 @@ def run_gate3(
     harness_input: HarnessInput,
     constitution_md: str,
     impl_specs: dict[str, str],
+    reference_docs: dict[str, str] | None = None,
 ) -> Gate3Result:
     """구현 명세서 4종 검증 1회 수행 (재시도 없음).
 
     재시도/조건부 통과 분기는 LangGraph conditional_edges 가 책임.
+    reference_docs: user_flow, build_plan 등 기획문서 — Secondary Inputs 으로 전달.
     """
     print("[Gate 3] Team Lead + Tech + Edu 병렬 검증 시작")
     with ThreadPoolExecutor(max_workers=3) as pool:
-        f_orch = pool.submit(_team_lead_judge, constitution_md, impl_specs)
+        f_orch = pool.submit(_team_lead_judge, constitution_md, impl_specs, reference_docs)
         f_tech = pool.submit(tech_review_gate3, harness_input, constitution_md, impl_specs)
         f_edu = pool.submit(edu_review_gate3, harness_input, constitution_md, impl_specs)
         orch = f_orch.result()

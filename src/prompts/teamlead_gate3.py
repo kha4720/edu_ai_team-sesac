@@ -71,6 +71,10 @@ Gate 3 기준으로 검증하라.
 - Data Schema 의 `output.mode` 값(enum 값)과 1:1로 대응되는 상태가 모두 존재하는가?
 - 헌법 ⑦ 루브릭 기반 서비스 플로우 원칙이 상태 전이 로직에 반영되었는가?
 - 누락된 mode 값(State Machine 에 없는 mode) 이 있는가?
+- **[Secondary Inputs] 의 User Flow 와 State Machine 의 흐름 방향 정합성:**
+  - State Machine 의 핵심 상태 순서(정방향 흐름)가 User Flow 의 화면 순서와 일치하는가?
+  - State Machine 이 User Flow 에 없는 상태를 추가한 경우, 그 상태가 User Flow 의 전환 조건·예외 케이스에서 도출 가능한가? (근거 없이 새 흐름을 발명한 것은 fail)
+  - State Machine 의 종료 조건이 User Flow 의 종료/재시도 흐름과 일치하는가?
 
 ### 3) prompt_spec_coverage
 - 공통 시스템 프롬프트 / 모드별 프롬프트 / Few-shot 예시 / 출력 형식 정의 섹션이 모두 존재하는가?
@@ -84,6 +88,9 @@ Gate 3 기준으로 검증하라.
 - Data Schema 의 필드명·타입과 Interface Spec 의 요청/응답 필드가 일치하는가?
 - User Flow 의 화면 전환 조건이 API 요청·응답 흐름에 반영되었는가?
 - 에러 처리(400 / 500 케이스 등) 가 포함되어 있는가?
+- **Build Plan 의 기술 방식과 Interface Spec 의 인터페이스 정의가 일치하는가?**
+  - Build Plan 에 "Backend 없음" 또는 "서버 없음" 이 명시된 경우, Interface Spec 에 `/api/...` 형태의 서버 엔드포인트가 정의되어 있으면 불일치로 판단한다.
+  - Build Plan 에 Backend 가 있는 경우, REST API 엔드포인트가 정의되어 있어야 한다.
 - 세션 내 공유 컨텍스트 섹션에서 다음이 명시되었는가?
   - 여러 API 호출에 걸쳐 유지되어야 하는 데이터 항목과 생성/사용 시점
   - 각 데이터 항목의 관리 주체 (프론트엔드 / 백엔드)

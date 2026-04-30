@@ -289,7 +289,11 @@ def node_gate3(state: HarnessState) -> dict[str, Any]:
         "Prompt Spec": state["prompt_spec_md"],
         "Interface Spec": state["interface_spec_md"],
     }
-    result = run_gate3(state["harness_input"], state["constitution_md"], impl_specs)
+    reference_docs = {
+        "User Flow (참조용)": state["user_flow_md"],
+        "Build Plan (참조용)": state["build_plan_md"],
+    }
+    result = run_gate3(state["harness_input"], state["constitution_md"], impl_specs, reference_docs)
 
     retry_before = state.get("gate3_retry_count", 0)
     updates: dict[str, Any] = {
